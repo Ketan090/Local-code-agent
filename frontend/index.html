@@ -63,9 +63,12 @@
     </div>
     <div class="composerWrap">
       <div class="composer composerPill" id="composer">
-        <textarea id="prompt" rows="1" placeholder="Ask anything — @file  /fix  /explain"></textarea>
+        <input type="file" id="photoInput" accept="image/*" multiple hidden/>
+        <div id="photoPreview" class="photoPreview"></div>
+        <textarea id="prompt" rows="1" placeholder="Ask anything — @file  /fix  /explain  📷"></textarea>
         <div class="composerBar">
           <div class="composerLeft">
+            <button id="btnPhoto" class="iconBtn" title="Send photo">📷</button>
             <span class="hint"><kbd>@</kbd> Files <kbd>/</kbd> Commands</span>
             <div class="cmds"><button data-cmd="/fix">/fix</button><button data-cmd="/explain">/explain</button><button data-cmd="/test">/test</button><button data-cmd="/review">/review</button></div>
           </div>

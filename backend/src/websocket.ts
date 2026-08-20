@@ -9,12 +9,12 @@ export function setupWS(wss: WebSocketServer, agent: AgentController, getWorkspa
       try{
         const msg = JSON.parse(raw.toString());
         if(msg.type==='agent:run'){
-          const { model, userMessage, history, openFiles, currentFile, temperature, maxTokens } = msg;
+          const { model, userMessage, history, openFiles, currentFile, temperature, maxTokens, images } = msg;
           const workspace = getWorkspace();
           if(!workspace) { ws.send(JSON.stringify({type:'error', message:'No workspace selected'})); return; }
           if(!model) { ws.send(JSON.stringify({type:'error', message:'No model selected'})); return; }
           const dbHist = history || [];
-          const gen = agent.run({ sessionId: sessionId||msg.sessionId, model, userMessage, history: dbHist, workspace, openFiles, currentFile, temperature, maxTokens, approvalPolicy:'manual' });
+          const gen = agent.run({ sessionId: sessionId||msg.sessionId, model, userMessage, history: dbHist, workspace, openFiles, currentFile, temperature, maxTokens, images, approvalPolicy:'manual' });
           for await (const ev of gen){
             if(ev.type==='assistant' && ev.content){
               ws.send(JSON.stringify({type:'token', content: ev.content, final: ev.final}));

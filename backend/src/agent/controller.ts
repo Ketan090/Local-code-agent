@@ -11,11 +11,15 @@ const isDangerous = (c:string)=>DANGEROUS.some(r=>r.test(c));
 const READONLY = new Set(['read_file','list_directory','search_files','get_file_info','git_status','git_diff']);
 export class AgentController {
   constructor(private provider:LMStudioProvider, private fm:FileManager, private tm:TerminalManager, private gm:GitManager, private cb:ContextBuilder, private opts:{maxIterations:number}){}
-  async *run(o:{sessionId:string;model:string;userMessage:string;history:ChatMessage[];workspace:string;openFiles?:string[];currentFile?:string;approvalPolicy?:string;temperature?:number;maxTokens?:number}): AsyncGenerator<any>{
+  async *run(o:{sessionId:string;model:string;userMessage:string;history:ChatMessage[];workspace:string;openFiles?:string[];currentFile?:string;approvalPolicy?:string;temperature?:number;maxTokens?:number;images?:string[]}): AsyncGenerator<any>{
     const t0=Date.now();
     let messages:ChatMessage[]=[{role:'system', content: this.cb.systemPrompt(o.workspace)+'\n\nContext:\n'+ await this.cb.build({workspace:o.workspace, openFiles:o.openFiles, currentFile:o.currentFile})}];
     messages.push(...o.history.slice(-12));
-    messages.push({role:'user', content:o.userMessage});
+    if(o.images?.length){
+      const content:any[]=[{type:'text', text:o.userMessage||'Describe this image'}];
+      for(const img of o.images.slice(0,4)) content.push({type:'image_url', image_url:{url: img.startsWith('data:')?img:`data:image/jpeg;base64,${img}`}});
+      messages.push({role:'user', content} as any);
+    } else messages.push({role:'user', content:o.userMessage} as any);
     const tools=toOpenAITools();
     let iter=0, done=false;
     while(!done && iter < this.opts.maxIterations){

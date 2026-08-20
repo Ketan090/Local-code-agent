@@ -1,5 +1,5 @@
 export interface ModelInfo { id: string; object: string; created?: number; owned_by?: string; }
-export interface ChatMessage { role: 'system'|'user'|'assistant'|'tool'; content: string; tool_calls?: ToolCall[]; tool_call_id?: string; name?: string }
+export interface ChatMessage { role: 'system'|'user'|'assistant'|'tool'; content: string | any[]; tool_calls?: ToolCall[]; tool_call_id?: string; name?: string }
 export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
 export interface ToolDefinition { type: 'function'; function: { name: string; description: string; parameters: any } }
 export interface StreamChunk { choices: { delta: { content?: string; tool_calls?: any[] }; finish_reason?: string }[] }

@@ -1,5 +1,5 @@
 const API=location.origin;
-let ws=null,editor=null,monacoLoaded=false,currentFile=null,openTabs=new Map(),workspace='',currentSession=null,chatHistory=[],modelList=[];
+let ws=null,editor=null,monacoLoaded=false,currentFile=null,openTabs=new Map(),workspace='',currentSession=null,chatHistory=[],modelList=[],pendingImages=[];
 const $=s=>document.querySelector(s);
 const logTerminal=t=>{const e=$('#terminal');e.textContent+=t+'\n';e.scrollTop=e.scrollHeight;};
 async function api(p,o={}){const r=await fetch(API+p,{headers:{'Content-Type':'application/json'},...o});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j;}
@@ -83,12 +83,12 @@ function connectWS(){
   };
   ws.onclose=()=>setTimeout(connectWS,2000);
 }
-function addChat(role,content){
+function addChat(role,content,images){
   const chat=$('#chat'); const row=document.createElement('div'); row.className=`msgRow ${role}`;
   const ava=document.createElement('div'); ava.className='avatar'; ava.textContent=role==='user'?'U':role==='tool'?'⚙':'✦';
   const bub=document.createElement('div'); bub.className='msgBubble';
-  if(role==='assistant') bub.innerHTML=renderMarkdown(content); else bub.textContent=content;
-  if(role!=='user'){ row.appendChild(ava); row.appendChild(bub);} else { bub.textContent=content; row.appendChild(bub); row.appendChild(ava);}
+  if(role==='assistant') bub.innerHTML=renderMarkdown(content); else { bub.textContent=content; if(images?.length) images.forEach(src=>{const im=document.createElement('img');im.src=src;bub.appendChild(im);}); }
+  if(role!=='user'){ row.appendChild(ava); row.appendChild(bub);} else { if(images?.length && !content.includes('data:')){ bub.textContent=content; } row.appendChild(bub); row.appendChild(ava);}
   chat.appendChild(row); $('#emptyState').style.display='none'; chatWrapScroll();
 }
 let streamingRow=null;
@@ -106,12 +106,13 @@ function appendAssistant(chunk, streaming){
 }
 function chatWrapScroll(){const w=$('#chatWrap'); w.scrollTop=w.scrollHeight;}
 function logActivity(t){const e=$('#activity');const d=document.createElement('div');d.textContent=new Date().toLocaleTimeString()+' '+t;e.appendChild(d);e.scrollTop=e.scrollHeight;if(e.children.length>60) e.firstChild.remove();}
+function renderPreview(){const c=$('#photoPreview');c.innerHTML='';pendingImages.forEach((src,i)=>{const d=document.createElement('div');d.className='thumb';d.innerHTML=`<img src="${src}"/><button class="rm">✕</button>`;d.querySelector('.rm').onclick=()=>{pendingImages.splice(i,1);renderPreview();};c.appendChild(d);});}
 async function sendPrompt(){
-  const text=$('#prompt').value.trim(); if(!text) return;
+  const text=$('#prompt').value.trim(); if(!text && !pendingImages.length) return;
   const model=$('#modelSelect').value; if(!model) return toast('Select model',true);
   if(!workspace) return toast('Open workspace first',true);
-  addChat('user',text); $('#prompt').value=''; autoResize($('#prompt')); chatHistory.push({role:'user',content:text});
-  const payload={type:'agent:run', sessionId:currentSession, model, userMessage:text, history:chatHistory.slice(-10), openFiles:Array.from(openTabs.keys()), currentFile, temperature:parseFloat($('#sTemp').value)||0.2, maxTokens:parseInt($('#sMaxTokens').value,10)||4096};
+  const imgs=[...pendingImages]; addChat('user',text||'(photo)',imgs); $('#prompt').value=''; pendingImages=[]; renderPreview(); autoResize($('#prompt')); chatHistory.push({role:'user',content:text});
+  const payload={type:'agent:run', sessionId:currentSession, model, userMessage:text, history:chatHistory.slice(-10), openFiles:Array.from(openTabs.keys()), currentFile, images:imgs, temperature:parseFloat($('#sTemp').value)||0.2, maxTokens:parseInt($('#sMaxTokens').value,10)||4096};
   if(ws&&ws.readyState===1) ws.send(JSON.stringify(payload)); else {try{const r=await api('/api/lmstudio/chat',{method:'POST',body:JSON.stringify({model,messages:chatHistory})});addChat('assistant',r.content);}catch(e){addChat('assistant','Error: '+e.message);}}
 }
 async function loadSessions(){
@@ -146,6 +147,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#btnSaveSettings').onclick=saveSettings;
   $('#btnTestConn').onclick=testConnection;
   $('#btnGit').onclick=()=>{$('#gitPanel').style.display=$('#gitPanel').style.display==='none'?'block':'none';loadGit();};
+  $('#btnPhoto').onclick=()=>$('#photoInput').click();
+  $('#photoInput').onchange=e=>{const files=[...e.target.files];files.forEach(f=>{if(f.size>4*1024*1024) return toast('Image >4MB skipped',true);const r=new FileReader();r.onload=()=>{pendingImages.push(r.result);renderPreview();};r.readAsDataURL(f);});e.target.value='';};
   $('#termInput').addEventListener('keydown',e=>{if(e.key==='Enter')execTerm();});
   $('#btnClearTerm').onclick=()=>$('#terminal').textContent='';
   $('#btnToggleIDE').onclick=()=>$('#ideDrawer').classList.toggle('hidden');
