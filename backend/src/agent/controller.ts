@@ -36,10 +36,10 @@ export class AgentController {
       });
       while(!streamDone || tokenQueue.length){
         if(tokenQueue.length){
-          const batch=tokenQueue.splice(0,8).join('');
+          const batch=tokenQueue.splice(0,2).join('');
           if(batch) yield {type:'token', content: batch};
         } else {
-          await new Promise(r=>setTimeout(r,18));
+          await new Promise(r=>setTimeout(r,10));
         }
         if(streamDone && !tokenQueue.length) break;
         if(streamDone) await streamPromise.catch(()=>{});
