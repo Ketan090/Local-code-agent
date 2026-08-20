@@ -22,21 +22,32 @@ export class AgentController {
       iter++; yield {type:'status', iteration:iter, max:this.opts.maxIterations, elapsed:Date.now()-t0};
       let assistantText=''; const pending:ToolCall[]=[];
       const streamStart=Date.now();
-      try{
-        await this.provider.streamChat({
-          model:o.model, messages, tools, temperature:o.temperature??0.2, max_tokens: o.maxTokens??4096,
-          onToken: t=>{ assistantText+=t; },
-          onToolCall: tcs=> pending.push(...tcs),
-          onDone: ()=>{},
-          onError: e=>{ throw new Error(e); }
-        });
-      }catch(e:any){ assistantText+=`\n[Error ${e.message}]`; }
+      const tokenQueue:string[]=[]; let streamDone=false; let streamErr:string|null=null;
+      const streamPromise = this.provider.streamChat({
+        model:o.model, messages, tools, temperature: o.temperature??0.15, max_tokens: o.maxTokens??2048,
+        onToken: t=>{ assistantText+=t; tokenQueue.push(t); },
+        onToolCall: tcs=> pending.push(...tcs),
+        onDone: ()=>{ streamDone=true; },
+        onError: e=>{ streamErr=e; streamDone=true; }
+      });
+      while(!streamDone || tokenQueue.length){
+        if(tokenQueue.length){
+          const batch=tokenQueue.splice(0,8).join('');
+          if(batch) yield {type:'token', content: batch};
+        } else {
+          await new Promise(r=>setTimeout(r,18));
+        }
+        if(streamDone && !tokenQueue.length) break;
+        if(streamDone) await streamPromise.catch(()=>{});
+      }
+      await streamPromise.catch(e=>{ streamErr=e.message; });
+      if(streamErr) assistantText+=`\n[Error ${streamErr}]`;
       if(!pending.length){
         const fb=parseFallbackToolCalls(assistantText);
         if(fb.length){ fb.forEach((f,i)=>pending.push({id:`fb_${i}_${Date.now()}`, type:'function', function:{name:f.name, arguments:JSON.stringify(f.args)}})); assistantText=assistantText.replace(/<tool_call>[\s\S]*?<\/tool_call>/g,'').trim(); }
       }
       if(pending.length){
-        yield {type:'assistant', content:assistantText, toolCalls:pending};
+        if(assistantText.trim()) yield {type:'assistant', content:'', toolCalls:pending, streamed:true};
         messages.push({role:'assistant', content:assistantText||'', tool_calls:pending} as any);
         const canParallel = pending.every(tc=> READONLY.has(tc.function.name)) && pending.length>1;
         const execOne = async (tc:ToolCall)=>{
@@ -65,7 +76,8 @@ export class AgentController {
         if(messages.length>24){ const sys=messages[0]; messages=[sys, ...messages.slice(-20)]; }
         continue;
       } else {
-        yield {type:'assistant', content:assistantText, final:true, latency: Date.now()-streamStart};
+        if(assistantText.trim()) yield {type:'done_stream', latency: Date.now()-streamStart};
+        else yield {type:'assistant', content:'', final:true};
         done=true;
       }
     }
