@@ -29,22 +29,46 @@ const cb = new ContextBuilder(fm);
 const provider = new LMStudioProvider(getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl), getSetting('lmstudio_apiKey',config.lmStudioApiKey));
 const agent = new AgentController(provider, fm, tm, gm, cb, { maxIterations: config.maxIterations });
 
+import os from 'os';
+import { setSetting } from './db';
+function candidates(){
+  const list=new Set<string>([getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl), config.lmStudioBaseUrl, 'http://localhost:1234/v1','http://127.0.0.1:1234/v1','http://10.88.238.129:1234/v1']);
+  try{ for(const iface of Object.values(os.networkInterfaces()).flat() as any[]){ if(iface&&iface.family==='IPv4'&&!iface.internal) list.add(`http://${iface.address}:1234/v1`);} }catch{}
+  return [...list].filter(Boolean);
+}
+async function autoConnect(){
+  for(const url of candidates()){
+    try{
+      const c=new AbortController(); setTimeout(()=>c.abort(),1500);
+      const r=await (await import('node-fetch')).default(url+'/models',{headers:{Authorization:`Bearer ${getSetting('lmstudio_apiKey',config.lmStudioApiKey)}`}, signal:c.signal as any});
+      if(r.ok){ const j:any=await r.json(); if(j.data?.length||j.models?.length){ provider.updateConfig(url,getSetting('lmstudio_apiKey',config.lmStudioApiKey)); setSetting('lmstudio_baseUrl',url); if(j.data?.[0]?.id&&!getSetting('lmstudio_model','')) setSetting('lmstudio_model',j.data[0].id); console.log(`Auto-connected to LM Studio at ${url} (${j.data?.length||0} models)`); return true; } }
+    }catch{}
+  }
+  console.log('LM Studio not found on startup — will retry on requests');
+  return false;
+}
+autoConnect();
+setInterval(autoConnect, 15000);
+
 app.get('/api/health', (req,res)=> res.json({ ok:true, workspace: fm.getWorkspace(), lmStudio: getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl) }));
 app.use('/api/lmstudio', lmstudioRouter(provider));
 app.use('/api/workspace', workspaceRouter(fm,tm,gm));
 app.use('/api/sessions', sessionsRouter());
 app.get('/api/diagnostics', async (req,res)=>{
   const wsOk = fm.getWorkspace() && require('fs').existsSync(fm.getWorkspace());
-  const lm = await provider.testConnection();
+  let lm = await provider.testConnection();
+  if(!lm.ok) { await autoConnect(); lm = await provider.testConnection(); }
   res.json({
     backend:'connected',
     workspace: fm.getWorkspace(),
     workspaceExists: !!wsOk,
     lmStudio: lm,
     model: getSetting('lmstudio_model',''),
-    iterations: config.maxIterations
+    iterations: config.maxIterations,
+    baseUrl: getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl)
   });
 });
+app.post('/api/lmstudio/autoconnect', async (req,res)=>{ const ok=await autoConnect(); res.json({ok, baseUrl:getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl)}); });
 
 const frontendPath = path.join(__dirname, '../../frontend');
 app.use(express.static(frontendPath));

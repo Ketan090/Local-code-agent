@@ -4,16 +4,29 @@ const $=s=>document.querySelector(s);
 const logTerminal=t=>{const e=$('#terminal');e.textContent+=t+'\n';e.scrollTop=e.scrollHeight;};
 async function api(p,o={}){const r=await fetch(API+p,{headers:{'Content-Type':'application/json'},...o});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j;}
 async function loadConfig(){try{const c=await api('/api/lmstudio/config');$('#sBaseUrl').value=c.baseUrl;$('#sTemp').value=c.temperature;$('#sMaxTokens').value=c.maxTokens;if(c.apiKey)$('#sApiKey').value=c.apiKey;$('#headerModelName').textContent=c.model?`— ${c.model}`:'— Select model';}catch{}}
-async function refreshModels(){
-  const dot=$('#lmStatus'); dot.className='dotStatus off'; dot.title='Connecting...';
+let autoRetry=null;
+async function refreshModels(silent){
+  const dot=$('#lmStatus'); if(!silent){dot.className='dotStatus off'; dot.title='Connecting...';}
   try{
+    try{ await api('/api/lmstudio/autoconnect',{method:'POST'}); }catch{}
     const {models}=await api('/api/lmstudio/models');
-    modelList=models; const sel=$('#modelSelect'); sel.innerHTML='';
-    if(!models.length) sel.innerHTML='<option>No models</option>'; else models.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.id;sel.appendChild(o);});
-    const cfg=await api('/api/lmstudio/config'); if(cfg.model) sel.value=cfg.model;
-    const has=cfg.model||models[0]?.id; if(has){sel.value=has; $('#headerModelName').textContent=`— ${has}`;}
-    dot.className='dotStatus on'; dot.title='Connected'; logTerminal(`Models: ${models.map(m=>m.id).join(', ')}`);
-  }catch(e){const d=$('#lmStatus');d.className='dotStatus off';d.title='Offline';logTerminal('Offline: '+e.message);}
+    if(!models.length) throw new Error('No models loaded in LM Studio');
+    modelList=models; const sel=$('#modelSelect'); const prev=sel.value; sel.innerHTML='';
+    models.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.id;sel.appendChild(o);});
+    const cfg=await api('/api/lmstudio/config');
+    const has=cfg.model && models.find(x=>x.id===cfg.model) ? cfg.model : models[0].id;
+    if(prev && models.find(x=>x.id===prev)) sel.value=prev; else sel.value=has;
+    $('#headerModelName').textContent=`— ${sel.value}`;
+    if(!cfg.model || !models.find(x=>x.id===cfg.model)) await api('/api/lmstudio/config',{method:'POST',body:JSON.stringify({model:sel.value})});
+    dot.className='dotStatus on'; dot.title='Connected'; if(!silent) logTerminal(`Models: ${models.map(m=>m.id).join(', ')}`);
+    if(autoRetry){clearInterval(autoRetry);autoRetry=null;}
+    return true;
+  }catch(e){
+    const d=$('#lmStatus');d.className='dotStatus off';d.title='Offline';
+    if(!silent) logTerminal('Offline: '+e.message+' — retrying...');
+    if(!autoRetry) autoRetry=setInterval(()=>refreshModels(true),3000);
+    return false;
+  }
 }
 async function testConnection(){const b=$('#sBaseUrl').value,a=$('#sApiKey').value;try{const r=await api('/api/lmstudio/test',{method:'POST',body:JSON.stringify({baseUrl:b,apiKey:a})});$('#settingsStatus').textContent=r.ok?'● Connected':'○ Failed: '+(r.error||'');}catch(e){$('#settingsStatus').textContent='Error: '+e.message;}}
 async function saveSettings(){const b=$('#sBaseUrl').value,a=$('#sApiKey').value,t=parseFloat($('#sTemp').value),m=parseInt($('#sMaxTokens').value,10);await api('/api/lmstudio/config',{method:'POST',body:JSON.stringify({baseUrl:b,apiKey:a,temperature:t,maxTokens:m})});await refreshModels();$('#settingsStatus').textContent='Saved';setTimeout(()=>$('#settingsModal').classList.add('hidden'),500);}
@@ -119,7 +132,7 @@ async function createSession(){const t=prompt('Chat title','New chat')||'New cha
 function execTerm(){const c=$('#termInput').value.trim();if(!c)return;$('#termInput').value='';logTerminal('$ '+c);api('/api/workspace/execute',{method:'POST',body:JSON.stringify({command:c})}).then(r=>{logTerminal(r.stdout||'');if(r.stderr)logTerminal('ERR: '+r.stderr);}).catch(e=>logTerminal(e.message));}
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 document.addEventListener('DOMContentLoaded',()=>{
-  loadConfig();refreshModels();loadWorkspace();loadSessions();initMonaco();connectWS();
+  loadConfig();refreshModels();setTimeout(refreshModels,1500);loadWorkspace();loadSessions();initMonaco();connectWS();
   $('#btnRefreshModels').onclick=refreshModels; $('#btnConnect').onclick=refreshModels;
   $('#btnSetWorkspace').onclick=setWorkspace;
   $('#btnOpenFolder').onclick=()=>{const p=prompt('Workspace path','C:\\Projects\\my-app');if(p){$('#workspaceInput').value=p;setWorkspace();}};
