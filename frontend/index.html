@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Local Code Agent</title>
+<link rel="stylesheet" href="style.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="logo"><span class="dot"></span> Local Code Agent</div>
+    <div class="proj" id="projLabel">No project</div>
+    <div class="modelBox">
+      <select id="modelSelect"><option>Loading models...</option></select>
+      <span id="lmStatus" class="status off">○ Offline</span>
+      <button id="btnConnect" class="btn sm">Test</button>
+      <button id="btnRefreshModels" class="btn sm ghost">↻</button>
+    </div>
+    <button id="btnSettings" class="btn sm ghost">Settings</button>
+    <button id="btnGit" class="btn sm ghost">Git</button>
+  </header>
+
+  <div class="layout">
+    <aside class="panel left" id="leftPanel">
+      <div class="panelHead">
+        <span>Explorer</span>
+        <button id="btnOpenFolder" class="btn xs">Open Folder</button>
+      </div>
+      <div class="pathRow"><input id="workspaceInput" placeholder="C:\Projects\my-app"/><button id="btnSetWorkspace" class="btn xs">Open</button></div>
+      <div id="fileTree" class="tree">No workspace</div>
+      <div class="panelHead small">Outline</div>
+      <div id="gitPanel" class="gitPanel">Git: not initialized</div>
+    </aside>
+
+    <div class="center">
+      <div class="tabs" id="tabs"></div>
+      <div id="editor" class="editor"></div>
+      <div class="terminalWrap">
+        <div class="termHead">
+          <span>Terminal</span>
+          <input id="termInput" placeholder="command (Enter to run)"/>
+          <button id="btnClearTerm" class="btn xs ghost">Clear</button>
+        </div>
+        <div id="terminal" class="terminal"></div>
+      </div>
+    </div>
+
+    <aside class="panel right" id="rightPanel">
+      <div class="panelHead">AI Agent
+        <select id="sessionSelect" class="sm"></select>
+        <button id="btnNewSession" class="btn xs">New</button>
+      </div>
+      <div id="agentStatus" class="agentStatus">Idle</div>
+      <div id="chat" class="chat"></div>
+      <div id="activity" class="activity"></div>
+      <div class="composer">
+        <textarea id="prompt" placeholder="Ask the coding agent...  @file  /fix  /explain"></textarea>
+        <div class="composerRow">
+          <span class="hint">@Files  /Commands</span>
+          <button id="btnSend" class="btn primary">Send ↑</button>
+        </div>
+        <div class="cmds">
+          <button data-cmd="/fix">/fix</button><button data-cmd="/explain">/explain</button><button data-cmd="/test">/test</button><button data-cmd="/review">/review</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="diffModal" class="modal hidden">
+    <div class="modalBox">
+      <h3>File Changes</h3>
+      <pre id="diffContent"></pre>
+      <div class="row"><button id="btnAccept" class="btn primary">Accept</button><button id="btnReject" class="btn">Reject</button><button id="btnCloseDiff" class="btn ghost">Close</button></div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal hidden">
+    <div class="modalBox">
+      <h3>LM Studio Settings</h3>
+      <label>Base URL<input id="sBaseUrl" value="http://localhost:1234/v1"/></label>
+      <label>API Key<input id="sApiKey" value="lm-studio"/></label>
+      <label>Temperature<input id="sTemp" type="number" step="0.1" value="0.2"/></label>
+      <label>Max Tokens<input id="sMaxTokens" type="number" value="4096"/></label>
+      <div class="row"><button id="btnSaveSettings" class="btn primary">Save</button><button id="btnTestConn" class="btn">Test Connection</button><button id="btnCloseSettings" class="btn ghost">Close</button></div>
+      <div id="settingsStatus"></div>
+    </div>
+  </div>
+
+  <div id="firstRun" class="modal hidden">
+    <div class="modalBox">
+      <h2>Welcome to Local Code Agent</h2>
+      <p>Connect your local AI</p>
+      <label>Endpoint<input id="frUrl" value="http://localhost:1234/v1"/></label>
+      <button id="btnFrTest" class="btn primary">Test Connection</button>
+      <div id="frStatus"></div>
+      <button id="btnFrOpen" class="btn" style="margin-top:12px">Open Project</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

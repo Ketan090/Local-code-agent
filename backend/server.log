@@ -1,0 +1,43 @@
+better-sqlite3 not available, using JSON fallback Could not locate the bindings file. Tried:
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\build\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\build\Debug\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\build\Release\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\out\Debug\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\Debug\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\out\Release\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\Release\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\build\default\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\compiled\22.12.0\win32\x64\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\addon-build\release\install-root\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\addon-build\debug\install-root\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\addon-build\default\install-root\better_sqlite3.node
+ → C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\node_modules\better-sqlite3\lib\binding\node-v127-win32-x64\better_sqlite3.node
+(node:25996) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+node:events:502
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3101
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at Object.<anonymous> (C:\Users\Asus\Desktop\project files\coding agent local\local-code-agent\backend\dist\index.js:63:8)
+    at Module._compile (node:internal/modules/cjs/loader:1565:14)
+    at Object..js (node:internal/modules/cjs/loader:1708:10)
+    at Module.load (node:internal/modules/cjs/loader:1318:32)
+    at Function._load (node:internal/modules/cjs/loader:1128:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+Emitted 'error' event on WebSocketServer instance at:
+    at Server.emit (node:events:524:28)
+    at emitErrorNT (node:net:1948:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3101
+}
+
+Node.js v22.12.0

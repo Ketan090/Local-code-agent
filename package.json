@@ -1,0 +1,12 @@
+{
+  "name": "local-code-agent",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "npm --prefix backend run dev",
+    "build": "npm --prefix backend run build",
+    "start": "node backend/dist/index.js",
+    "install:all": "npm --prefix backend install --ignore-scripts"
+  }
+}
