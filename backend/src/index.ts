@@ -2,10 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 import { WebSocketServer } from 'ws';
 import { config } from './config';
-import { db, getSetting } from './db';
+import { db, getSetting, setSetting } from './db';
 import { LMStudioProvider } from './providers/lmstudio';
+import { OpencodeProvider } from './providers/opencode';
 import { FileManager } from './managers/fileManager';
 import { TerminalManager } from './managers/terminalManager';
 import { GitManager } from './managers/gitManager';
@@ -16,71 +19,145 @@ import { workspaceRouter } from './routes/workspace';
 import { sessionsRouter } from './routes/sessions';
 import { setupWS } from './websocket';
 
+// --- Express setup ---
 const app = express();
 app.use(cors());
-app.use(express.json({limit:'10mb'}));
-app.use(express.urlencoded({extended:true}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
+// --- Core services ---
 const workspaceInitial = getSetting('workspace', config.workspaceRoot);
-const fm = new FileManager(workspaceInitial||process.cwd());
+const fm = new FileManager(workspaceInitial || process.cwd());
 const tm = new TerminalManager();
-const gm = new GitManager(tm, ()=>fm.getWorkspace());
+const gm = new GitManager(tm, () => fm.getWorkspace());
 const cb = new ContextBuilder(fm);
-const provider = new LMStudioProvider(getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl), getSetting('lmstudio_apiKey',config.lmStudioApiKey));
+const lmProvider = new LMStudioProvider(
+  getSetting('lmstudio_baseUrl', config.lmStudioBaseUrl),
+  getSetting('lmstudio_apiKey', config.lmStudioApiKey)
+);
+const ocProvider = new OpencodeProvider(getSetting('opencode_baseUrl', config.opencodeBaseUrl));
+let activeProvider: any = getSetting('provider','lmstudio')==='opencode' ? ocProvider : lmProvider;
+const provider = activeProvider;
 const agent = new AgentController(provider, fm, tm, gm, cb, { maxIterations: config.maxIterations });
 
-import os from 'os';
-import { setSetting } from './db';
-function candidates(){
-  const list=new Set<string>([getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl), config.lmStudioBaseUrl, 'http://localhost:1234/v1','http://127.0.0.1:1234/v1','http://10.88.238.129:1234/v1']);
-  try{ for(const iface of Object.values(os.networkInterfaces()).flat() as any[]){ if(iface&&iface.family==='IPv4'&&!iface.internal) list.add(`http://${iface.address}:1234/v1`);} }catch{}
+// --- LM Studio auto-connect ---
+let autoConnectRunning = false;
+function lmCandidates(): string[] {
+  const list = new Set<string>([
+    getSetting('lmstudio_baseUrl', config.lmStudioBaseUrl),
+    config.lmStudioBaseUrl,
+    'http://localhost:1234/v1',
+    'http://127.0.0.1:1234/v1',
+  ]);
+  try {
+    for (const iface of Object.values(os.networkInterfaces()).flat() as any[]) {
+      if (iface && iface.family === 'IPv4' && !iface.internal) {
+        list.add(`http://${iface.address}:1234/v1`);
+      }
+    }
+  } catch {}
   return [...list].filter(Boolean);
 }
-async function autoConnect(){
-  for(const url of candidates()){
-    try{
-      const c=new AbortController(); setTimeout(()=>c.abort(),1500);
-      const r=await (await import('node-fetch')).default(url+'/models',{headers:{Authorization:`Bearer ${getSetting('lmstudio_apiKey',config.lmStudioApiKey)}`}, signal:c.signal as any});
-      if(r.ok){ const j:any=await r.json(); if(j.data?.length||j.models?.length){ provider.updateConfig(url,getSetting('lmstudio_apiKey',config.lmStudioApiKey)); setSetting('lmstudio_baseUrl',url); if(j.data?.[0]?.id&&!getSetting('lmstudio_model','')) setSetting('lmstudio_model',j.data[0].id); console.log(`Auto-connected to LM Studio at ${url} (${j.data?.length||0} models)`); return true; } }
-    }catch{}
-  }
-  console.log('LM Studio not found on startup — will retry on requests');
-  return false;
-}
-autoConnect();
-setInterval(autoConnect, 15000);
 
-app.get('/api/health', (req,res)=> res.json({ ok:true, workspace: fm.getWorkspace(), lmStudio: getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl) }));
-app.use('/api/lmstudio', lmstudioRouter(provider));
-app.use('/api/workspace', workspaceRouter(fm,tm,gm));
+async function autoConnect(): Promise<boolean> {
+  if (autoConnectRunning) return false;
+  autoConnectRunning = true;
+  try {
+    const apiKey = getSetting('lmstudio_apiKey', config.lmStudioApiKey);
+    for (const url of lmCandidates()) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 2000);
+        const fetch = (await import('node-fetch')).default;
+        const r = await fetch(url + '/models', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: ctrl.signal as any,
+        });
+        clearTimeout(timer);
+        if (r.ok) {
+          const j: any = await r.json();
+          const models = j.data || j.models || [];
+          if (models.length) {
+            provider.updateConfig(url, apiKey);
+            setSetting('lmstudio_baseUrl', url);
+            if (!getSetting('lmstudio_model', '') && models[0]?.id) {
+              setSetting('lmstudio_model', models[0].id);
+            }
+            console.log(`Auto-connected to LM Studio at ${url} (${models.length} models)`);
+            return true;
+          }
+        }
+      } catch {}
+    }
+    console.log('LM Studio not found — will retry every 30s');
+    return false;
+  } finally {
+    autoConnectRunning = false;
+  }
+}
+
+autoConnect();
+const autoConnectInterval = setInterval(autoConnect, 30_000);
+
+// --- Routes ---
+app.get('/api/health', (_req, res) =>
+  res.json({ ok: true, workspace: fm.getWorkspace(), lmStudio: getSetting('lmstudio_baseUrl', config.lmStudioBaseUrl), opencode: getSetting('opencode_baseUrl', config.opencodeBaseUrl), provider: getSetting('provider', config.provider) })
+);
+app.use('/api/lmstudio', lmstudioRouter(lmProvider));
+import { opencodeRouter } from './routes/opencode';
+app.use('/api/opencode', opencodeRouter(ocProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+app.use('/api/workspace', workspaceRouter(fm, tm, gm));
 app.use('/api/sessions', sessionsRouter());
-app.get('/api/diagnostics', async (req,res)=>{
-  const wsOk = fm.getWorkspace() && require('fs').existsSync(fm.getWorkspace());
+
+app.get('/api/diagnostics', async (_req, res) => {
+  const wsOk = fm.getWorkspace() && fs.existsSync(fm.getWorkspace());
   let lm = await provider.testConnection();
-  if(!lm.ok) { await autoConnect(); lm = await provider.testConnection(); }
+  if (!lm.ok) { await autoConnect(); lm = await provider.testConnection(); }
   res.json({
-    backend:'connected',
+    backend: 'connected',
     workspace: fm.getWorkspace(),
     workspaceExists: !!wsOk,
     lmStudio: lm,
-    model: getSetting('lmstudio_model',''),
+    model: getSetting('lmstudio_model', ''),
     iterations: config.maxIterations,
-    baseUrl: getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl)
+    baseUrl: getSetting('lmstudio_baseUrl', config.lmStudioBaseUrl),
   });
 });
-app.post('/api/lmstudio/autoconnect', async (req,res)=>{ const ok=await autoConnect(); res.json({ok, baseUrl:getSetting('lmstudio_baseUrl',config.lmStudioBaseUrl)}); });
 
-const frontendPath = path.join(__dirname, '../../frontend');
-app.use(express.static(frontendPath));
-app.get('*', (req,res)=>{
-  const index = path.join(frontendPath,'index.html');
-  if(require('fs').existsSync(index)) res.sendFile(index);
-  else res.json({ message:'Local Code Agent API running', frontend:'not built yet' });
+app.post('/api/lmstudio/autoconnect', async (_req, res) => {
+  const ok = await autoConnect();
+  res.json({ ok, baseUrl: getSetting('lmstudio_baseUrl', config.lmStudioBaseUrl) });
 });
 
+// --- Static frontend ---
+const frontendPath = path.join(__dirname, '../../frontend');
+app.use(express.static(frontendPath));
+app.get('*', (req, res) => {
+  const index = path.join(frontendPath, 'index.html');
+  if (fs.existsSync(index)) res.sendFile(index);
+  else res.json({ message: 'Local Code Agent API running', frontend: 'not built yet' });
+});
+
+// --- Server & WebSocket ---
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path:'/ws' });
-setupWS(wss, agent, ()=>fm.getWorkspace());
+const wss = new WebSocketServer({ server, path: '/ws' });
+setupWS(wss, agent, () => fm.getWorkspace());
 
 const PORT = config.port;
-server.listen(PORT, ()=> console.log(`Backend running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+
+// --- Graceful shutdown ---
+function shutdown(signal: string) {
+  console.log(`\n${signal} received — shutting down...`);
+  clearInterval(autoConnectInterval);
+  wss.clients.forEach(ws => { try { ws.close(1001, 'Server shutting down'); } catch {} });
+  wss.close();
+  server.close(() => {
+    try { tm.killAll?.(); } catch {}
+    console.log('Server stopped.');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 5000);
+}
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Local Code Agent</title>
+<meta name="description" content="Local AI coding agent — connect to LM Studio, read, edit, and run your workspace autonomously."/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>"/>
 <link rel="stylesheet" href="style.css"/>
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 </head>
@@ -12,38 +14,42 @@
   <aside class="sidebar" id="sidebar">
     <div class="sideTop">
       <div class="brand"><span class="brandDot"></span> Local Code Agent</div>
-      <button id="btnNewSession" class="newChat"><span>+</span> New chat</button>
-      <div class="sideSection">
-        <div class="sideLabel">Workspace</div>
-        <div class="wsRow"><input id="workspaceInput" placeholder="C:\Projects\my-app"/><button id="btnSetWorkspace" class="iconBtn">↗</button></div>
+      <button id="btnNewSession" class="newChat" title="New chat (Ctrl+N)"><span>+</span> New chat</button>
+      <div class="sideSection" id="wsSection">
+        <div class="sideLabel" onclick="document.getElementById('wsSection').classList.toggle('collapsed')">Workspace</div>
+        <div class="wsRow">
+          <input id="workspaceInput" placeholder="Paste workspace path..." aria-label="Workspace path"/>
+          <button id="btnSetWorkspace" class="iconBtn" title="Open workspace">↗</button>
+        </div>
         <div id="fileTree" class="fileMini"></div>
       </div>
-      <div class="sideSection">
-        <div class="sideLabel">Chats</div>
+      <div class="sideSection" id="chatSection">
+        <div class="sideLabel" onclick="document.getElementById('chatSection').classList.toggle('collapsed')">Chats</div>
         <div id="sessionList" class="sessionList"></div>
-        <select id="sessionSelect" style="display:none"></select>
+        <select id="sessionSelect" style="display:none" aria-label="Select chat"></select>
       </div>
     </div>
     <div class="sideBottom">
       <div class="modelPill">
-        <select id="modelSelect"><option>Loading models...</option></select>
-        <span id="lmStatus" class="dotStatus off"></span>
+        <select id="providerSelect" style="max-width:90px;font-size:11px" title="Provider"><option value="lmstudio">LM Studio</option><option value="opencode">Opencode</option></select>
+        <select id="modelSelect" aria-label="Select model"><option>Loading models...</option></select>
+        <span id="lmStatus" class="dotStatus off" title="Connection status"></span>
       </div>
       <div class="sideActions">
-        <button id="btnGit" class="sideBtn">Git</button>
-        <button id="btnSettings" class="sideBtn">Settings</button>
+        <button id="btnGit" class="sideBtn" title="Toggle git status">Git</button>
+        <button id="btnSettings" class="sideBtn" title="Settings (Ctrl+,)">Settings</button>
       </div>
       <div class="sideFoot"><span id="projLabel">No project</span><span class="ver"> · local</span></div>
     </div>
   </aside>
   <div class="main">
     <header class="chatHeader">
-      <button id="btnToggleSidebar" class="iconBtn hideDesktop">☰</button>
+      <button id="btnToggleSidebar" class="iconBtn hideDesktop" title="Toggle sidebar">☰</button>
       <div class="headerModel">Local Code Agent <span class="headerSub" id="headerModelName">— Select model</span></div>
       <div class="headerActions">
-        <button id="btnRefreshModels" class="iconBtn" title="Refresh">↻</button>
-        <button id="btnConnect" class="iconBtn" title="Test">●</button>
-        <button id="btnToggleIDE" class="pillBtn">IDE</button>
+        <button id="btnRefreshModels" class="iconBtn" title="Refresh models">↻</button>
+        <button id="btnConnect" class="iconBtn" title="Test connection">●</button>
+        <button id="btnToggleIDE" class="pillBtn" title="Toggle IDE (Ctrl+I)">IDE</button>
       </div>
     </header>
     <div id="chatWrap" class="chatWrap">
@@ -65,27 +71,86 @@
       <div class="composer composerPill" id="composer">
         <input type="file" id="photoInput" accept="image/*" multiple hidden/>
         <div id="photoPreview" class="photoPreview"></div>
-        <textarea id="prompt" rows="1" placeholder="Ask anything — @file  /fix  /explain  📷"></textarea>
+        <textarea id="prompt" rows="1" placeholder="Ask anything — @file  /fix  /explain  📷" aria-label="Message"></textarea>
         <div class="composerBar">
           <div class="composerLeft">
-            <button id="btnPhoto" class="iconBtn" title="Send photo">📷</button>
+            <button id="btnPhoto" class="iconBtn" title="Attach photo (max 4MB)">📷</button>
             <span class="hint"><kbd>@</kbd> Files <kbd>/</kbd> Commands</span>
-            <div class="cmds"><button data-cmd="/fix">/fix</button><button data-cmd="/explain">/explain</button><button data-cmd="/test">/test</button><button data-cmd="/review">/review</button></div>
+            <div class="cmds">
+              <button data-cmd="/fix">/fix</button>
+              <button data-cmd="/explain">/explain</button>
+              <button data-cmd="/test">/test</button>
+              <button data-cmd="/review">/review</button>
+            </div>
           </div>
-          <button id="btnSend" class="sendBtn" aria-label="Send"><span>↑</span></button>
+          <button id="btnSend" class="sendBtn" aria-label="Send message (Ctrl+Enter)"><span>↑</span></button>
         </div>
       </div>
-      <div class="composerFoot">Local Code Agent can make mistakes. Verify with terminal &amp; diff. <span id="agentStatus" style="margin-left:8px"></span></div>
+      <div class="composerFoot">Agent can make mistakes — verify with terminal & diff. <span id="agentStatus" style="margin-left:8px"></span></div>
     </div>
   </div>
   <aside class="ideDrawer" id="ideDrawer">
-    <div class="ideHead"><div class="ideTabs" id="tabs"></div><div class="ideActions"><button id="btnOpenFolder" class="iconBtn">Open</button><button id="btnCloseIDE" class="iconBtn">✕</button></div></div>
+    <div class="resizeHandle"></div>
+    <div class="ideHead">
+      <div class="ideTabs" id="tabs"></div>
+      <div class="ideActions">
+        <button id="btnOpenFolder" class="iconBtn" title="Open file">Open</button>
+        <button id="btnCloseIDE" class="iconBtn" title="Close IDE">✕</button>
+      </div>
+    </div>
     <div id="editor" class="editor"></div>
-    <div class="terminalWrap" id="terminalWrap"><div class="termHead"><span>Terminal</span><input id="termInput" placeholder="Run command… (Enter)"/><button id="btnClearTerm" class="iconBtn">Clear</button><button id="btnTermToggle" class="iconBtn">—</button></div><div id="terminal" class="terminal"></div><div id="gitPanel" class="gitPanel" style="display:none"></div></div>
+    <div class="terminalWrap" id="terminalWrap">
+      <div class="termHead">
+        <span>Terminal</span>
+        <input id="termInput" placeholder="Run command… (Enter)" aria-label="Terminal command"/>
+        <button id="btnClearTerm" class="iconBtn" title="Clear terminal">Clear</button>
+        <button id="btnTermToggle" class="iconBtn" title="Toggle terminal">—</button>
+      </div>
+      <div id="terminal" class="terminal"></div>
+      <div id="gitPanel" class="gitPanel" style="display:none"></div>
+    </div>
   </aside>
 </div>
-<div id="settingsModal" class="modal hidden"><div class="modalBox"><h3>Settings</h3><label>Base URL<input id="sBaseUrl" value="http://10.88.238.129:1234/v1"/></label><label>API Key<input id="sApiKey" value="lm-studio"/></label><label>Temperature<input id="sTemp" type="number" step="0.1" value="0.2"/></label><label>Max Tokens<input id="sMaxTokens" type="number" value="4096"/></label><div class="row"><button id="btnSaveSettings" class="btn primary">Save</button><button id="btnTestConn" class="btn">Test</button><button id="btnCloseSettings" class="btn ghost">Close</button></div><div id="settingsStatus" class="muted"></div></div></div>
-<div id="firstRun" class="modal hidden"><div class="modalBox"><h2>Welcome</h2><p>Connect your local AI</p><label>Endpoint<input id="frUrl" value="http://10.88.238.129:1234/v1"/></label><button id="btnFrTest" class="btn primary">Test</button><div id="frStatus"></div><button id="btnFrOpen" class="btn" style="margin-top:12px">Open Project</button></div></div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal hidden">
+  <div class="modalBox">
+    <h3>⚙️ Settings</h3>
+    <label>LM Studio URL
+      <input id="sBaseUrl" placeholder="http://localhost:1234/v1"/>
+    </label>
+    <label>API Key
+      <input id="sApiKey" placeholder="lm-studio"/>
+    </label>
+    <label>Temperature
+      <input id="sTemp" type="number" step="0.1" min="0" max="2" placeholder="0.2"/>
+    </label>
+    <label>Max Tokens
+      <input id="sMaxTokens" type="number" min="256" max="32768" placeholder="4096"/>
+    </label>
+    <div class="row">
+      <button id="btnSaveSettings" class="btn primary">Save</button>
+      <button id="btnTestConn" class="btn">Test Connection</button>
+      <button id="btnCloseSettings" class="btn ghost">Close</button>
+    </div>
+    <div id="settingsStatus" class="muted"></div>
+  </div>
+</div>
+
+<!-- First Run Modal -->
+<div id="firstRun" class="modal hidden">
+  <div class="modalBox">
+    <h2>✦ Welcome</h2>
+    <p style="color:var(--muted);font-size:13px">Connect to your local LM Studio instance to get started.</p>
+    <label>LM Studio Endpoint
+      <input id="frUrl" placeholder="http://localhost:1234/v1"/>
+    </label>
+    <button id="btnFrTest" class="btn primary">Test Connection</button>
+    <div id="frStatus" style="font-size:12px"></div>
+    <button id="btnFrOpen" class="btn" style="margin-top:12px">Open Project</button>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
