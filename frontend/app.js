@@ -103,6 +103,16 @@ async function refreshModels(silent) {
       dot.className='dotStatus on'; dot.title='Opencode'; if(!silent) logTerminal(`Opencode models: ${models.map(m=>m.id).join(', ')}`);
       if(autoRetry){clearInterval(autoRetry);autoRetry=null;} return true;
     }
+    if(provider==='nvidia'){
+      const {models}=await api('/api/nvidia/models');
+      if(!models.length) throw new Error('No NVIDIA models — check API key');
+      modelList=models; const sel=$('#modelSelect'); const prev=sel.value; sel.innerHTML='';
+      const preferred=['nvidia/llama-3.1-nemotron-70b-instruct','meta/llama-3.2-90b-vision-instruct','mistralai/codestral-22b-instruct-v0.1'];
+      models.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.id;sel.appendChild(o);});
+      const has=prev&&models.find(x=>x.id===prev)?prev:(models.find(x=>preferred.includes(x.id))?.id||models[0].id); sel.value=has; $('#headerModelName').textContent=`— ${sel.value}`;
+      dot.className='dotStatus on'; dot.title='NVIDIA'; if(!silent) logTerminal(`NVIDIA models: ${models.length}`);
+      if(autoRetry){clearInterval(autoRetry);autoRetry=null;} return true;
+    }
     try { await api('/api/lmstudio/autoconnect', { method: 'POST' }); } catch {}
     const { models } = await api('/api/lmstudio/models');
     if (!models.length) throw new Error('No models loaded in LM Studio');

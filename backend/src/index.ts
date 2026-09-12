@@ -9,6 +9,7 @@ import { config } from './config';
 import { db, getSetting, setSetting } from './db';
 import { LMStudioProvider } from './providers/lmstudio';
 import { OpencodeProvider } from './providers/opencode';
+import { NvidiaProvider } from './providers/nvidia';
 import { FileManager } from './managers/fileManager';
 import { TerminalManager } from './managers/terminalManager';
 import { GitManager } from './managers/gitManager';
@@ -36,7 +37,9 @@ const lmProvider = new LMStudioProvider(
   getSetting('lmstudio_apiKey', config.lmStudioApiKey)
 );
 const ocProvider = new OpencodeProvider(getSetting('opencode_baseUrl', config.opencodeBaseUrl));
-let activeProvider: any = getSetting('provider','lmstudio')==='opencode' ? ocProvider : lmProvider;
+const nvProvider = new NvidiaProvider(getSetting('nvidia_baseUrl', config.nvidiaBaseUrl), getSetting('nvidia_apiKey', config.nvidiaApiKey));
+function resolveProvider(){ const p=getSetting('provider',config.provider); if(p==='opencode') return ocProvider; if(p==='nvidia') return nvProvider; return lmProvider; }
+let activeProvider: any = resolveProvider();
 const provider = activeProvider;
 const agent = new AgentController(provider, fm, tm, gm, cb, { maxIterations: config.maxIterations });
 
@@ -106,6 +109,8 @@ app.get('/api/health', (_req, res) =>
 app.use('/api/lmstudio', lmstudioRouter(lmProvider));
 import { opencodeRouter } from './routes/opencode';
 app.use('/api/opencode', opencodeRouter(ocProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+import { nvidiaRouter } from './routes/nvidia';
+app.use('/api/nvidia', nvidiaRouter(nvProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
 app.use('/api/workspace', workspaceRouter(fm, tm, gm));
 app.use('/api/sessions', sessionsRouter());
 
