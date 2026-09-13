@@ -119,7 +119,7 @@ async function refreshModels(silent) {
       const free=models.filter(m=>m.access_tier==='free'||m.pricing?.input===0);
       const list=free.length?free:models;
       modelList=list; const sel=$('#modelSelect'); const prev=sel.value; sel.innerHTML='';
-      const preferred=['openai/gpt-5.3-codex-spark','mistralai/codestral-2508','mistralai/devstral-medium','mistralai/mistral-medium-3.5'];
+      const preferred=['mistralai/codestral-2508','mistralai/devstral-medium','mistralai/mistral-medium-3.5','mistralai/mistral-small-2603'];
       list.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.id} ${m.access_tier==='free'?'(FREE)':''}`;sel.appendChild(o);});
       const has=prev&&list.find(x=>x.id===prev)?prev:(list.find(x=>preferred.includes(x.id))?.id||list[0].id); sel.value=has; $('#headerModelName').textContent=`— ${sel.value}`;
       dot.className='dotStatus on'; dot.title='xKiro FREE'; if(!silent) logTerminal(`xKiro FREE models: ${list.map(m=>m.id).join(', ')}`);
