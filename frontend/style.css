@@ -112,3 +112,132 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .hideDesktop{display:none}
 @media(max-width:1100px){.ideDrawer{position:fixed;right:0;top:48px;bottom:0;width:100%;max-width:520px;z-index:20;box-shadow:-8px 0 24px rgba(0,0,0,.4)}.ideDrawer.hidden{display:none}}
 @media(max-width:700px){.sidebar{position:fixed;inset:0 30% 0 0;z-index:30;transform:translateX(-100%);transition:.25s}.sidebar.open{transform:translateX(0)}.hideDesktop{display:inline-flex}.chat.chatGPT{padding:16px 0}.msgRow{padding:14px 12px}}
+
+/* ─── Toast notifications ─── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:12px;font-size:13px;z-index:100;opacity:0;animation:toastIn .3s ease forwards;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:400px;text-align:center}
+.toast.err{border-color:var(--red);color:var(--red)}
+@keyframes toastIn{to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+
+/* ─── Streaming indicator ─── */
+.typingIndicator{display:inline-flex;align-items:center;gap:4px;padding:4px 0}
+.typingIndicator .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:typingBounce 1.2s infinite ease-in-out}
+.typingIndicator .dot:nth-child(2){animation-delay:.15s}
+.typingIndicator .dot:nth-child(3){animation-delay:.3s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+
+/* ─── Tool result cards ─── */
+.toolCard{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.12);border-left:3px solid var(--green);border-radius:10px;padding:10px 14px;margin:8px 0;font-family:'JetBrains Mono',monospace;font-size:12px;color:#9BE8A0}
+.toolCard .toolName{font-weight:600;color:var(--green);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.toolCard .toolName .toolIcon{font-size:14px}
+.toolCard .toolArgs{color:var(--muted);font-size:11px;max-height:60px;overflow:hidden;word-break:break-all}
+.toolCard .toolOutput{color:var(--muted);margin-top:6px;max-height:180px;overflow:auto;border-top:1px solid rgba(63,185,80,.1);padding-top:6px;white-space:pre-wrap;word-break:break-all}
+.toolCard .toolToggle{color:var(--accent);cursor:pointer;font-size:11px;margin-top:4px;display:inline-block}
+.toolCard .toolToggle:hover{text-decoration:underline}
+.toolCard.error{border-color:rgba(248,81,73,.2);background:rgba(248,81,73,.06);border-left-color:var(--red);color:#F88}
+.toolCard.error .toolName{color:var(--red)}
+
+/* ─── Loading spinner ─── */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loadingRow{display:flex;gap:12px;padding:18px 20px;align-items:center;color:var(--muted);font-size:13px}
+.loadingRow .spinner{flex-shrink:0}
+
+/* ─── Live agent status bar ─── */
+.agentLiveBar{max-width:760px;margin:0 auto 8px;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:7px 14px;font-size:12.5px;color:var(--muted);transition:.2s}
+.agentLiveBar .liveDot{width:8px;height:8px;border-radius:50%;background:var(--muted2);flex-shrink:0}
+.agentLiveBar.active{color:var(--text);border-color:var(--accent)}
+.agentLiveBar.active .liveDot{background:var(--accent);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,140,255,.5)}50%{box-shadow:0 0 0 5px rgba(124,140,255,0)}}
+.agentLiveBar.done{color:var(--green);border-color:rgba(63,185,80,.3)}
+.agentLiveBar.done .liveDot{background:var(--green)}
+.agentLiveBar.error{color:var(--red);border-color:rgba(248,81,73,.35)}
+.agentLiveBar.error .liveDot{background:var(--red)}
+.agentLiveBar.idle{opacity:.75}
+#agentLiveMeta{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2)}
+
+/* ─── Message animations ─── */
+.msgRow{animation:msgFadeIn .25s ease}
+@keyframes msgFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── File tree improvements ─── */
+.fileMini .item.dir{color:var(--text);font-weight:500}
+.fileMini .item .fileIcon{margin-right:4px;font-size:11px;display:inline-block;width:14px;text-align:center}
+.fileMini .item .fileIcon.dir{color:var(--accent)}
+.fileMini .item .fileIcon.ts{color:#3178C6}
+.fileMini .item .fileIcon.js{color:#F7DF1E}
+.fileMini .item .fileIcon.py{color:#3776AB}
+.fileMini .item .fileIcon.json{color:var(--green)}
+.fileMini .item .fileIcon.md{color:var(--muted)}
+.fileMini .item .fileIcon.css{color:#264DE4}
+.fileMini .item .fileIcon.html{color:#E34F26}
+.fileMini .item .back{color:var(--muted2);font-style:italic}
+
+/* ─── Collapsible sections ─── */
+.sideSection{overflow:hidden}
+.sideSection .sideLabel{cursor:pointer;display:flex;align-items:center;gap:4px;user-select:none}
+.sideSection .sideLabel::before{content:'▾';font-size:9px;transition:transform .15s;display:inline-block}
+.sideSection.collapsed .sideLabel::before{transform:rotate(-90deg)}
+.sideSection.collapsed>*:not(.sideLabel){display:none}
+
+/* ─── Better scrollbar ─── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:var(--border2)}
+
+/* ─── Selection color ─── */
+::selection{background:rgba(124,140,255,.3);color:var(--text)}
+
+/* ─── Keyboard shortcut hint ─── */
+.shortcutHint{position:fixed;bottom:16px;right:16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:11px;color:var(--muted2);z-index:40;opacity:0;pointer-events:none;transition:opacity .3s;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.shortcutHint.show{opacity:1;pointer-events:auto}
+.shortcutHint kbd{background:var(--bg4);border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:1px 5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin:0 2px}
+
+/* ─── Code block improvements ─── */
+.msgBubble pre{position:relative}
+.msgBubble pre code{background:none;padding:0;font-size:12.5px;line-height:1.55}
+.msgBubble .codeHeader{display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-bottom:1px solid var(--border);padding:6px 12px;font-size:11px;color:var(--muted);border-radius:10px 10px 0 0}
+.msgBubble .codeHeader+.codeHeader+pre,.msgBubble pre:first-child{border-radius:0 0 10px 10px}
+.msgBubble .codeHeader .copyBtn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer}
+.msgBubble .codeHeader .copyBtn:hover{color:var(--text);background:var(--bg4)}
+.msgBubble ul,.msgBubble ol{padding-left:20px;margin:8px 0}
+.msgBubble li{margin:3px 0;line-height:1.5}
+.msgBubble h1,.msgBubble h2,.msgBubble h3,.msgBubble h4{margin:14px 0 6px;font-weight:600}
+.msgBubble h1{font-size:18px}
+.msgBubble h2{font-size:16px}
+.msgBubble h3{font-size:14px}
+.msgBubble blockquote{border-left:3px solid var(--accent);padding:6px 12px;margin:8px 0;color:var(--muted);background:rgba(124,140,255,.05);border-radius:0 8px 8px 0}
+.msgBubble a{color:var(--accent);text-decoration:none}
+.msgBubble a:hover{text-decoration:underline}
+.msgBubble hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.msgBubble table{border-collapse:collapse;margin:10px 0;font-size:12.5px;width:100%}
+.msgBubble th,.msgBubble td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.msgBubble th{background:var(--bg3);font-weight:600}
+.msgBubble strong{color:var(--text);font-weight:600}
+.msgBubble em{color:var(--muted);font-style:italic}
+
+/* ─── Agent status indicator ─── */
+.agentThinking{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;color:var(--muted)}
+.agentThinking .spinner{width:14px;height:14px}
+.agentDone{color:var(--green);font-size:11px}
+
+/* ─── Send button animation ─── */
+.sendBtn{position:relative;overflow:hidden}
+.sendBtn::after{content:'';position:absolute;inset:0;background:var(--accent);border-radius:50%;opacity:0;transition:.2s}
+.sendBtn:hover::after{opacity:.15}
+
+/* ─── Empty state glow ─── */
+.emptyIcon{animation:emptyPulse 3s infinite ease-in-out}
+@keyframes emptyPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,140,255,0)}50%{box-shadow:0 0 0 12px rgba(124,140,255,.08)}}
+
+/* ─── IDE resize handle ─── */
+.ideDrawer{position:relative}
+.ideDrawer .resizeHandle{position:absolute;left:-3px;top:48px;bottom:0;width:6px;cursor:col-resize;z-index:10}
+.ideDrawer .resizeHandle:hover{background:rgba(124,140,255,.2)}
+
+/* ─── Improved modal ─── */
+.modalBox{animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.modalBox label input{transition:border-color .15s}
+.modalBox label input:focus{border-color:var(--accent);outline:none}

@@ -162,6 +162,17 @@ app.post('/api/lmstudio/autoconnect', async (_req, res) => {
   res.json({ ok, baseUrl: getSetting('lmstudio_baseUrl', config.lmStudioBaseUrl) });
 });
 
+// Generic chat via the ACTIVE provider (used by WS fallback)
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { model, messages, temperature, max_tokens } = req.body as any;
+    const m = model || getSetting('lmstudio_model', config.defaultModel);
+    if (!m) return res.status(400).json({ error: 'No model selected' });
+    const text = await activeProvider.chatCompletion({ model: m, messages, temperature, max_tokens });
+    res.json({ content: text, provider: getSetting('provider', config.provider) });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Static frontend ---
 const frontendPath = path.join(__dirname, '../../frontend');
 app.use(express.static(frontendPath));

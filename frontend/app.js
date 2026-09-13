@@ -299,14 +299,14 @@ function connectWS() {
   ws.onmessage = ev => {
     try {
       const m = JSON.parse(ev.data);
-      if (m.type === 'token') appendAssistant(m.content || '', true);
+      if (m.type === 'token') { appendAssistant(m.content || '', true); setAgentStatus('Writing answer…', true); }
       else if (m.type === 'assistant' && m.content) { appendAssistant(m.content, !m.final); if (m.toolCalls) logActivity(m.toolCalls.map(t => t.function.name).join(', ')); }
       else if (m.type === 'done_stream') { finalizeStreaming(); }
-      else if (m.type === 'tool_start') { finalizeStreaming(); addToolCard(m.name, m.args, 'running'); logActivity('● ' + m.name); }
-      else if (m.type === 'tool_result') { finalizeStreaming(); updateToolCard(m.name, m.result, m.id); logActivity('✓ ' + m.name); if (m.name?.includes('write') || m.name?.includes('edit')) setTimeout(() => { renderTree(); if (currentFile) openFile(currentFile); loadGit(); }, 300); }
-      else if (m.type === 'status') { $('#agentStatus').innerHTML = `<span class="spinner"></span> ${m.iteration}/${m.max} iterations`; }
-      else if (m.type === 'done') { removeStreamingIndicator(); $('#agentStatus').innerHTML = '<span class="agentDone">✓ Done</span>'; logActivity('Done'); }
-      else if (m.type === 'error') { removeStreamingIndicator(); addChat('assistant', '⚠️ Error: ' + m.message); }
+      else if (m.type === 'tool_start') { finalizeStreaming(); addToolCard(m.name, m.args, 'running'); logActivity('● ' + m.name); setAgentStatus(toolLabel(m.name, m.args), true); }
+      else if (m.type === 'tool_result') { finalizeStreaming(); updateToolCard(m.name, m.result, m.id); logActivity('✓ ' + m.name); setAgentStatus('Thinking…', true); if (m.name?.includes('write') || m.name?.includes('edit')) setTimeout(() => { renderTree(); if (currentFile) openFile(currentFile); loadGit(); }, 300); }
+      else if (m.type === 'status') { $('#agentStatus').innerHTML = `<span class="spinner"></span> ${m.iteration}/${m.max} iterations`; setAgentStatus(`Thinking… step ${m.iteration}/${m.max}`, true, m); }
+      else if (m.type === 'done') { removeStreamingIndicator(); $('#agentStatus').innerHTML = '<span class="agentDone">✓ Done</span>'; setAgentStatus('Done ✓', false, null, 'done'); logActivity('Done'); }
+      else if (m.type === 'error') { removeStreamingIndicator(); addChat('assistant', '⚠️ Error: ' + m.message); setAgentStatus('Error: ' + m.message, false, null, 'error'); }
       else if (m.type === 'file_changed') { /* handled by tool_result */ }
       else if (m.type === 'approval_required') {
         if (confirm(`⚠️ Allow this command?\n\n${m.command}`)) { ws.send(JSON.stringify({ type: 'approve', id: m.id })); }
@@ -431,6 +431,55 @@ function removeStreamingIndicator() {
   if (ind) ind.remove();
   finalizeStreaming();
 }
+
+// ─── Live status bar ───
+let agentTimer = null;
+let agentStart = 0;
+function toolLabel(name, args) {
+  try {
+    const a = args || {};
+    if (name === 'read_file') return `Reading ${a.path || 'file'}…`;
+    if (name === 'write_file') return `Writing ${a.path || 'file'}…`;
+    if (name === 'edit_file') return `Editing ${a.path || 'file'}…`;
+    if (name === 'list_directory') return `Listing ${a.path || 'project'}…`;
+    if (name === 'search_files') return `Searching “${a.pattern || ''}”…`;
+    if (name === 'execute_command') return `Running: ${(a.command || '').slice(0, 60)}…`;
+    if (name === 'run_tests') return 'Running tests…';
+    if (name === 'git_status') return 'Checking git status…';
+    if (name === 'git_diff') return 'Reading git diff…';
+    if (name === 'get_file_info') return `Inspecting ${a.path || 'file'}…`;
+    if (name === 'parallel') return `Running ${a.count || ''} reads in parallel…`;
+  } catch {}
+  return `${name}…`;
+}
+function setAgentStatus(text, active, meta, state) {
+  const bar = $('#agentLiveBar');
+  const label = $('#agentLiveText');
+  const metaEl = $('#agentLiveMeta');
+  if (!bar || !label) return;
+  label.textContent = text || (active ? 'Working…' : 'Idle');
+  bar.className = 'agentLiveBar ' + (state || (active ? 'active' : 'idle'));
+  if (meta && meta.iteration) {
+    if (metaEl) metaEl.textContent = `step ${meta.iteration}/${meta.max}`;
+  } else if (!active) {
+    if (agentStart && state === 'done') {
+      const secs = ((Date.now() - agentStart) / 1000).toFixed(1);
+      if (metaEl) metaEl.textContent = `${secs}s`;
+    } else if (metaEl && state !== 'done') metaEl.textContent = '';
+  }
+  const foot = $('#agentStatus');
+  if (foot && active) foot.innerHTML = `<span class="spinner" style="width:11px;height:11px"></span> ${escapeHtml(text || 'Working…')}`;
+}
+function startAgentTimer() {
+  agentStart = Date.now();
+  if (agentTimer) clearInterval(agentTimer);
+  agentTimer = setInterval(() => {
+    const bar = $('#agentLiveBar');
+    if (!bar || !bar.classList.contains('active')) { clearInterval(agentTimer); agentTimer = null; return; }
+    const metaEl = $('#agentLiveMeta');
+    if (metaEl && !metaEl.textContent.includes('step')) metaEl.textContent = ((Date.now() - agentStart) / 1000).toFixed(0) + 's';
+  }, 500);
+}
 function chatWrapScroll() {
   const w = $('#chatWrap');
   if (!w) return;
@@ -481,6 +530,8 @@ async function sendPrompt() {
   indicator.innerHTML = '<span class="spinner"></span> Thinking...';
   chat.appendChild(indicator);
   chatWrapScroll();
+  setAgentStatus('Connecting to model…', true);
+  startAgentTimer();
 
   const payload = {
     type: 'agent:run', sessionId: currentSession, model, userMessage: text,
@@ -489,13 +540,16 @@ async function sendPrompt() {
   };
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(payload));
   else {
+    setAgentStatus('Sending via HTTP fallback…', true);
     try {
-      const r = await api('/api/lmstudio/chat', { method: 'POST', body: JSON.stringify({ model, messages: chatHistory }) });
-      const ind = document.getElementById('streamingIndicator'); if (ind) ind.remove();
+      const r = await api('/api/chat', { method: 'POST', body: JSON.stringify({ model, messages: chatHistory }) });
+      removeStreamingIndicator();
       addChat('assistant', r.content);
+      setAgentStatus('Done ✓', false, null, 'done');
     } catch (e) {
-      const ind = document.getElementById('streamingIndicator'); if (ind) ind.remove();
+      removeStreamingIndicator();
       addChat('assistant', '⚠️ Error: ' + e.message);
+      setAgentStatus('Error', false, null, 'error');
     }
   }
 }
