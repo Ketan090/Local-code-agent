@@ -31,7 +31,7 @@
     </div>
     <div class="sideBottom">
       <div class="modelPill">
-        <select id="providerSelect" style="max-width:95px;font-size:11px" title="Provider"><option value="lmstudio">LM Studio</option><option value="opencode">Opencode</option><option value="nvidia">NVIDIA</option></select>
+        <select id="providerSelect" style="max-width:95px;font-size:11px" title="Provider"><option value="lmstudio">LM Studio</option><option value="opencode">Opencode</option><option value="nvidia">NVIDIA</option><option value="xkiro">xKiro FREE</option></select>
         <select id="modelSelect" aria-label="Select model"><option>Loading models...</option></select>
         <span id="lmStatus" class="dotStatus off" title="Connection status"></span>
       </div>
@@ -121,6 +121,9 @@
     </label>
     <label>API Key
       <input id="sApiKey" placeholder="lm-studio"/>
+    </label>
+    <label>xKiro API Key (free models — get at xkiro.com → API Keys)
+      <input id="sXkiroKey" placeholder="sk-... (paste xKiro key)" type="password"/>
     </label>
     <label>Temperature
       <input id="sTemp" type="number" step="0.1" min="0" max="2" placeholder="0.2"/>

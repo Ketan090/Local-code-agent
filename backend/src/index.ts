@@ -10,6 +10,7 @@ import { db, getSetting, setSetting } from './db';
 import { LMStudioProvider } from './providers/lmstudio';
 import { OpencodeProvider } from './providers/opencode';
 import { NvidiaProvider } from './providers/nvidia';
+import { OpenAICompatProvider } from './providers/openaiCompat';
 import { FileManager } from './managers/fileManager';
 import { TerminalManager } from './managers/terminalManager';
 import { GitManager } from './managers/gitManager';
@@ -38,7 +39,10 @@ const lmProvider = new LMStudioProvider(
 );
 const ocProvider = new OpencodeProvider(getSetting('opencode_baseUrl', config.opencodeBaseUrl));
 const nvProvider = new NvidiaProvider(getSetting('nvidia_baseUrl', config.nvidiaBaseUrl), getSetting('nvidia_apiKey', config.nvidiaApiKey));
-function resolveProvider(){ const p=getSetting('provider',config.provider); if(p==='opencode') return ocProvider; if(p==='nvidia') return nvProvider; return lmProvider; }
+const orProvider = new OpenAICompatProvider('https://openrouter.ai/api/v1', getSetting('openrouter_key', config.openrouterKey), 'openrouter');
+const unoProvider = new OpenAICompatProvider('https://router.uno/v1', getSetting('uno_key', config.unoKey), 'uno');
+const xkiroProvider = new OpenAICompatProvider(getSetting('xkiro_baseUrl', config.xkiroBaseUrl), getSetting('xkiro_key', config.xkiroApiKey), 'xkiro');
+function resolveProvider(){ const p=getSetting('provider',config.provider); if(p==='opencode') return ocProvider; if(p==='nvidia') return nvProvider; if(p==='openrouter') return orProvider; if(p==='uno') return unoProvider; if(p==='xkiro') return xkiroProvider; return lmProvider; }
 let activeProvider: any = resolveProvider();
 const provider = activeProvider;
 const agent = new AgentController(provider, fm, tm, gm, cb, { maxIterations: config.maxIterations });
@@ -111,6 +115,10 @@ import { opencodeRouter } from './routes/opencode';
 app.use('/api/opencode', opencodeRouter(ocProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
 import { nvidiaRouter } from './routes/nvidia';
 app.use('/api/nvidia', nvidiaRouter(nvProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+import { openaiCompatRouter } from './routes/openaiCompat';
+app.use('/api/openrouter', openaiCompatRouter('openrouter', orProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+app.use('/api/uno', openaiCompatRouter('uno', unoProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+app.use('/api/xkiro', openaiCompatRouter('xkiro', xkiroProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
 app.use('/api/workspace', workspaceRouter(fm, tm, gm));
 app.use('/api/sessions', sessionsRouter());
 

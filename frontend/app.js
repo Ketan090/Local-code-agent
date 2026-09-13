@@ -113,6 +113,18 @@ async function refreshModels(silent) {
       dot.className='dotStatus on'; dot.title='NVIDIA'; if(!silent) logTerminal(`NVIDIA models: ${models.length}`);
       if(autoRetry){clearInterval(autoRetry);autoRetry=null;} return true;
     }
+    if(provider==='xkiro'){
+      const {models}=await api('/api/xkiro/models');
+      if(!models.length) throw new Error('No xKiro models — check API key');
+      const free=models.filter(m=>m.access_tier==='free'||m.pricing?.input===0);
+      const list=free.length?free:models;
+      modelList=list; const sel=$('#modelSelect'); const prev=sel.value; sel.innerHTML='';
+      const preferred=['openai/gpt-5.3-codex-spark','mistralai/codestral-2508','mistralai/devstral-medium','mistralai/mistral-medium-3.5'];
+      list.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.id} ${m.access_tier==='free'?'(FREE)':''}`;sel.appendChild(o);});
+      const has=prev&&list.find(x=>x.id===prev)?prev:(list.find(x=>preferred.includes(x.id))?.id||list[0].id); sel.value=has; $('#headerModelName').textContent=`— ${sel.value}`;
+      dot.className='dotStatus on'; dot.title='xKiro FREE'; if(!silent) logTerminal(`xKiro FREE models: ${list.map(m=>m.id).join(', ')}`);
+      if(autoRetry){clearInterval(autoRetry);autoRetry=null;} return true;
+    }
     try { await api('/api/lmstudio/autoconnect', { method: 'POST' }); } catch {}
     const { models } = await api('/api/lmstudio/models');
     if (!models.length) throw new Error('No models loaded in LM Studio');
@@ -151,6 +163,8 @@ async function testConnection() {
 async function saveSettings() {
   const b = $('#sBaseUrl').value, a = $('#sApiKey').value, t = parseFloat($('#sTemp').value), m = parseInt($('#sMaxTokens').value, 10);
   await api('/api/lmstudio/config', { method: 'POST', body: JSON.stringify({ baseUrl: b, apiKey: a, temperature: t, maxTokens: m }) });
+  const xk = $('#sXkiroKey')?.value?.trim();
+  if (xk) { await api('/api/xkiro/config', { method: 'POST', body: JSON.stringify({ apiKey: xk }) }); if($('#sXkiroKey')) $('#sXkiroKey').value=''; }
   await refreshModels();
   toast('Settings saved');
   $('#settingsModal').classList.add('hidden');
@@ -538,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnCloseIDE').onclick = () => $('#ideDrawer').classList.add('hidden');
   $('#btnToggleSidebar').onclick = () => $('#sidebar').classList.toggle('open');
   $('#btnTermToggle').onclick = () => $('#terminalWrap').classList.toggle('collapsed');
-  $('#providerSelect').onchange = async e=>{ const v=e.target.value; await api('/api/opencode/switch',{method:'POST', body:JSON.stringify({provider:v})}); toast('Provider: '+v); refreshModels(); };
+  $('#providerSelect').onchange = async e=>{ const v=e.target.value; try{ const ep=v==='xkiro'?'/api/xkiro/switch':v==='nvidia'?'/api/nvidia/switch':v==='openrouter'?'/api/openrouter/switch':v==='uno'?'/api/uno/switch':'/api/opencode/switch'; await api(ep,{method:'POST', body:JSON.stringify({provider:v})}); }catch{} toast('Provider: '+v); refreshModels(); };
   $('#modelSelect').onchange = e => { const prov=$('#providerSelect').value; if(prov==='opencode') api('/api/opencode/config',{method:'POST', body:JSON.stringify({})}); else api('/api/lmstudio/config', { method: 'POST', body: JSON.stringify({ model: e.target.value }) }); $('#headerModelName').textContent = `— ${e.target.value}`; toast('Model: ' + e.target.value); };
 
   // Photo input
