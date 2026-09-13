@@ -25,11 +25,12 @@ function escapeHtml(s) {
 }
 
 function renderMarkdown(s) {
-  // Fenced code blocks with language and copy button
-  let h = s.replace(/```(\w*)\n([\s\S]*?)```/g, (m, lang, code) => {
+  let h = escapeHtml(s || '');
+  // Fenced code blocks with language and copy button (content already escaped)
+  h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (m, lang, code) => {
     const trimmed = code.replace(/\n+$/, '');
     const id = 'code-' + Math.random().toString(36).slice(2, 8);
-    return `<div class="codeHeader"><span>${lang || 'code'}</span><button class="copyBtn" onclick="copyCode('${id}')">Copy</button></div><pre><code id="${id}">${escapeHtml(trimmed)}</code></pre>`;
+    return `<div class="codeHeader"><span>${lang || 'code'}</span><button class="copyBtn" onclick="copyCode('${id}')">Copy</button></div><pre><code id="${id}">${trimmed}</code></pre>`;
   });
   // Inline code
   h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
@@ -298,13 +299,14 @@ function connectWS() {
   ws.onmessage = ev => {
     try {
       const m = JSON.parse(ev.data);
-      if (m.type === 'token') appendAssistant(m.content, !m.final);
+      if (m.type === 'token') appendAssistant(m.content || '', true);
       else if (m.type === 'assistant' && m.content) { appendAssistant(m.content, !m.final); if (m.toolCalls) logActivity(m.toolCalls.map(t => t.function.name).join(', ')); }
-      else if (m.type === 'tool_start') { addToolCard(m.name, m.args, 'running'); logActivity('● ' + m.name); }
-      else if (m.type === 'tool_result') { updateToolCard(m.name, m.result, m.id); logActivity('✓ ' + m.name); if (m.name?.includes('write') || m.name?.includes('edit')) setTimeout(() => { renderTree(); if (currentFile) openFile(currentFile); loadGit(); }, 300); }
+      else if (m.type === 'done_stream') { finalizeStreaming(); }
+      else if (m.type === 'tool_start') { finalizeStreaming(); addToolCard(m.name, m.args, 'running'); logActivity('● ' + m.name); }
+      else if (m.type === 'tool_result') { finalizeStreaming(); updateToolCard(m.name, m.result, m.id); logActivity('✓ ' + m.name); if (m.name?.includes('write') || m.name?.includes('edit')) setTimeout(() => { renderTree(); if (currentFile) openFile(currentFile); loadGit(); }, 300); }
       else if (m.type === 'status') { $('#agentStatus').innerHTML = `<span class="spinner"></span> ${m.iteration}/${m.max} iterations`; }
-      else if (m.type === 'done') { $('#agentStatus').innerHTML = '<span class="agentDone">✓ Done</span>'; logActivity('Done'); removeStreamingIndicator(); }
-      else if (m.type === 'error') { addChat('assistant', '⚠️ Error: ' + m.message); removeStreamingIndicator(); }
+      else if (m.type === 'done') { removeStreamingIndicator(); $('#agentStatus').innerHTML = '<span class="agentDone">✓ Done</span>'; logActivity('Done'); }
+      else if (m.type === 'error') { removeStreamingIndicator(); addChat('assistant', '⚠️ Error: ' + m.message); }
       else if (m.type === 'file_changed') { /* handled by tool_result */ }
       else if (m.type === 'approval_required') {
         if (confirm(`⚠️ Allow this command?\n\n${m.command}`)) { ws.send(JSON.stringify({ type: 'approve', id: m.id })); }
@@ -386,7 +388,10 @@ function updateToolCard(name, result, id) {
 
 // ─── Streaming ───
 let streamingRow = null;
+let streamingText = '';
 function appendAssistant(chunk, streaming) {
+  const ind = document.getElementById('streamingIndicator');
+  if (ind) ind.remove();
   if (!streamingRow || streamingRow.dataset.done === 'true') {
     const chat = $('#chat');
     streamingRow = document.createElement('div');
@@ -399,20 +404,39 @@ function appendAssistant(chunk, streaming) {
     streamingRow.appendChild(ava);
     streamingRow.appendChild(bub);
     chat.appendChild(streamingRow);
-    $('#emptyState').style.display = 'none';
+    streamingText = '';
+    const es = $('#emptyState'); if (es) es.style.display = 'none';
   }
+  streamingText += chunk;
   const bub = streamingRow.querySelector('.msgBubble');
-  bub.textContent = (bub.textContent || '') + chunk;
-  if (!streaming) {
-    bub.innerHTML = renderMarkdown(bub.textContent);
-    streamingRow.dataset.done = 'true';
-    streamingRow = null;
-  }
+  bub.textContent = streamingText;
+  if (!streaming) finalizeStreaming();
+  else chatWrapScroll();
+}
+
+function finalizeStreaming() {
+  if (!streamingRow) return;
+  try {
+    const bub = streamingRow.querySelector('.msgBubble');
+    if (bub && streamingText) bub.innerHTML = renderMarkdown(streamingText);
+  } catch {}
+  streamingRow.dataset.done = 'true';
+  streamingRow = null;
+  streamingText = '';
   chatWrapScroll();
 }
 
-function removeStreamingIndicator() { /* handled by done event */ }
-function chatWrapScroll() { const w = $('#chatWrap'); w.scrollTop = w.scrollHeight; }
+function removeStreamingIndicator() {
+  const ind = document.getElementById('streamingIndicator');
+  if (ind) ind.remove();
+  finalizeStreaming();
+}
+function chatWrapScroll() {
+  const w = $('#chatWrap');
+  if (!w) return;
+  const nearBottom = (w.scrollHeight - w.scrollTop - w.clientHeight) < 140;
+  if (nearBottom) w.scrollTop = w.scrollHeight;
+}
 function logActivity(t) {
   const e = $('#activity');
   const d = document.createElement('div');
@@ -442,6 +466,8 @@ async function sendPrompt() {
   if (!workspace) return toast('Open a workspace first', true);
 
   const imgs = [...pendingImages];
+  finalizeStreaming();
+  removeStreamingIndicator();
   addChat('user', text || '(photo)', imgs);
   $('#prompt').value = '';
   pendingImages = []; renderPreview(); autoResize($('#prompt'));
@@ -458,7 +484,7 @@ async function sendPrompt() {
 
   const payload = {
     type: 'agent:run', sessionId: currentSession, model, userMessage: text,
-    history: chatHistory.slice(-12), openFiles: Array.from(openTabs.keys()), currentFile,
+    history: chatHistory.slice(-6), openFiles: Array.from(openTabs.keys()), currentFile,
     images: imgs, temperature: parseFloat($('#sTemp').value) || 0.2, maxTokens: parseInt($('#sMaxTokens').value, 10) || 4096
   };
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(payload));
@@ -501,6 +527,8 @@ async function loadSession(id) {
     chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
     $('#chat').innerHTML = '';
     streamingRow = null;
+    try { streamingText = ''; } catch {}
+    removeStreamingIndicator();
     messages.forEach(m => addChat(m.role === 'user' ? 'user' : m.role === 'assistant' ? 'assistant' : 'tool', m.content));
     loadSessions();
   } catch {}
@@ -552,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnCloseIDE').onclick = () => $('#ideDrawer').classList.add('hidden');
   $('#btnToggleSidebar').onclick = () => $('#sidebar').classList.toggle('open');
   $('#btnTermToggle').onclick = () => $('#terminalWrap').classList.toggle('collapsed');
-  $('#providerSelect').onchange = async e=>{ const v=e.target.value; try{ const ep=v==='xkiro'?'/api/xkiro/switch':v==='nvidia'?'/api/nvidia/switch':v==='openrouter'?'/api/openrouter/switch':v==='uno'?'/api/uno/switch':'/api/opencode/switch'; await api(ep,{method:'POST', body:JSON.stringify({provider:v})}); }catch{} toast('Provider: '+v); refreshModels(); };
+  $('#providerSelect').onchange = async e=>{ const v=e.target.value; try{ await api('/api/provider/switch',{method:'POST', body:JSON.stringify({provider:v})}); }catch{} toast('Provider: '+v); refreshModels(); };
   $('#modelSelect').onchange = e => { const prov=$('#providerSelect').value; if(prov==='opencode') api('/api/opencode/config',{method:'POST', body:JSON.stringify({})}); else api('/api/lmstudio/config', { method: 'POST', body: JSON.stringify({ model: e.target.value }) }); $('#headerModelName').textContent = `— ${e.target.value}`; toast('Model: ' + e.target.value); };
 
   // Photo input

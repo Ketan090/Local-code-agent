@@ -7,6 +7,6 @@ export function opencodeRouter(provider:any, getActive:()=>any, setActive:(p:any
   r.post('/config', (req,res)=>{ const {baseUrl, provider:p}=req.body; if(baseUrl){ setSetting('opencode_baseUrl', baseUrl); provider.updateConfig(baseUrl); } if(p){ setSetting('provider', p); setActive(p==='opencode'?provider:getActive()); } res.json({ok:true}); });
   r.get('/models', async (req,res)=>{ try{ const ms=await provider.getModels(); res.json({models:ms}); }catch(e:any){ res.status(500).json({error:e.message}); } });
   r.post('/test', async (req,res)=>{ const {baseUrl}=req.body; if(baseUrl) provider.updateConfig(baseUrl); const ok=await provider.testConnection(); res.json(ok); });
-  r.post('/switch', (req,res)=>{ const {provider:p, baseUrl}=req.body; if(baseUrl){ setSetting('opencode_baseUrl', baseUrl); provider.updateConfig(baseUrl); } if(p){ setSetting('provider', p); } res.json({ok:true, provider:getSetting('provider',config.provider)}); });
+  r.post('/switch', (req,res)=>{ const {provider:p, baseUrl}=req.body; if(baseUrl){ setSetting('opencode_baseUrl', baseUrl); provider.updateConfig(baseUrl); } if(p){ setSetting('provider', p); if(p==='opencode') setActive(provider); } res.json({ok:true, provider:getSetting('provider',config.provider)}); });
   return r;
 }

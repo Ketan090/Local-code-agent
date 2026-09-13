@@ -10,6 +10,6 @@ export function openaiCompatRouter(name:string, provider:any, getActive:()=>any,
   r.post('/config-key', (req,res)=>{ const {apiKey, provider:p}=req.body; if(apiKey){ setSetting(keyVal, apiKey); provider.updateConfig('', apiKey); } if(p){ setSetting('provider', p); setActive(p===name?provider:getActive()); } res.json({ok:true}); });
   r.get('/models', async (req,res)=>{ try{ const ms=await provider.getModels(); res.json({models:ms}); }catch(e:any){ res.status(500).json({error:e.message}); } });
   r.post('/test', async (req,res)=>{ const {apiKey}=req.body; if(apiKey) provider.updateConfig('', apiKey); const ok=await provider.testConnection(); res.json(ok); });
-  r.post('/switch', (req,res)=>{ const {provider:p}=req.body; if(p) setSetting('provider', p); res.json({ok:true, provider:getSetting('provider',config.provider)}); });
+  r.post('/switch', (req,res)=>{ const {provider:p}=req.body; if(p){ setSetting('provider', p); if(p===name) setActive(provider); } res.json({ok:true, provider:getSetting('provider',config.provider)}); });
   return r;
 }

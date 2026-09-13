@@ -42,10 +42,21 @@ const nvProvider = new NvidiaProvider(getSetting('nvidia_baseUrl', config.nvidia
 const orProvider = new OpenAICompatProvider('https://openrouter.ai/api/v1', getSetting('openrouter_key', config.openrouterKey), 'openrouter');
 const unoProvider = new OpenAICompatProvider('https://router.uno/v1', getSetting('uno_key', config.unoKey), 'uno');
 const xkiroProvider = new OpenAICompatProvider(getSetting('xkiro_baseUrl', config.xkiroBaseUrl), getSetting('xkiro_key', config.xkiroApiKey), 'xkiro');
-function resolveProvider(){ const p=getSetting('provider',config.provider); if(p==='opencode') return ocProvider; if(p==='nvidia') return nvProvider; if(p==='openrouter') return orProvider; if(p==='uno') return unoProvider; if(p==='xkiro') return xkiroProvider; return lmProvider; }
+const providers: Record<string, any> = { lmstudio: null as any, opencode: ocProvider, nvidia: nvProvider, openrouter: orProvider, uno: unoProvider, xkiro: xkiroProvider };
+providers.lmstudio = lmProvider;
+function resolveProvider(){ const p=getSetting('provider',config.provider); return (providers as any)[p] || lmProvider; }
+function resolveName(p:any){ for(const k of Object.keys(providers)) if((providers as any)[k]===p) return k; return 'lmstudio'; }
 let activeProvider: any = resolveProvider();
 const provider = activeProvider;
 const agent = new AgentController(provider, fm, tm, gm, cb, { maxIterations: config.maxIterations });
+function setActiveProvider(name:string){
+  const inst = (providers as any)[name] || lmProvider;
+  activeProvider = inst;
+  try { agent.setProvider(inst); } catch {}
+  setSetting('provider', name);
+  console.log(`Provider switched to ${name}`);
+  return inst;
+}
 
 // --- LM Studio auto-connect ---
 let autoConnectRunning = false;
@@ -112,20 +123,29 @@ app.get('/api/health', (_req, res) =>
 );
 app.use('/api/lmstudio', lmstudioRouter(lmProvider));
 import { opencodeRouter } from './routes/opencode';
-app.use('/api/opencode', opencodeRouter(ocProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+app.use('/api/opencode', opencodeRouter(ocProvider, ()=>activeProvider, (p:any)=>{activeProvider=p; try{agent.setProvider(p);}catch{}}));
 import { nvidiaRouter } from './routes/nvidia';
-app.use('/api/nvidia', nvidiaRouter(nvProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+app.use('/api/nvidia', nvidiaRouter(nvProvider, ()=>activeProvider, (p:any)=>{activeProvider=p; try{agent.setProvider(p);}catch{}}));
 import { openaiCompatRouter } from './routes/openaiCompat';
-app.use('/api/openrouter', openaiCompatRouter('openrouter', orProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
-app.use('/api/uno', openaiCompatRouter('uno', unoProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
-app.use('/api/xkiro', openaiCompatRouter('xkiro', xkiroProvider, ()=>activeProvider, (p:any)=>{activeProvider=p;}));
+app.use('/api/openrouter', openaiCompatRouter('openrouter', orProvider, ()=>activeProvider, (p:any)=>{activeProvider=p; try{agent.setProvider(p);}catch{}}));
+app.use('/api/uno', openaiCompatRouter('uno', unoProvider, ()=>activeProvider, (p:any)=>{activeProvider=p; try{agent.setProvider(p);}catch{}}));
+app.use('/api/xkiro', openaiCompatRouter('xkiro', xkiroProvider, ()=>activeProvider, (p:any)=>{activeProvider=p; try{agent.setProvider(p);}catch{}}));
+app.post('/api/provider/switch', (req, res) => {
+  const { provider: name } = req.body as any;
+  if (!name || !(providers as any)[name]) return res.status(400).json({ error: 'unknown provider' });
+  setActiveProvider(name);
+  res.json({ ok: true, provider: name });
+});
+app.get('/api/provider', (_req, res) => {
+  res.json({ provider: getSetting('provider', config.provider), active: resolveName(activeProvider) });
+});
 app.use('/api/workspace', workspaceRouter(fm, tm, gm));
 app.use('/api/sessions', sessionsRouter());
 
 app.get('/api/diagnostics', async (_req, res) => {
   const wsOk = fm.getWorkspace() && fs.existsSync(fm.getWorkspace());
-  let lm = await provider.testConnection();
-  if (!lm.ok) { await autoConnect(); lm = await provider.testConnection(); }
+  let lm = await activeProvider.testConnection();
+  if (!lm.ok) { await autoConnect(); lm = await activeProvider.testConnection(); }
   res.json({
     backend: 'connected',
     workspace: fm.getWorkspace(),

@@ -10,11 +10,12 @@ const DANGEROUS = [/rm\s+-rf/i, /Remove-Item.*-Recurse/i, /git\s+reset\s+--hard/
 const isDangerous = (c:string)=>DANGEROUS.some(r=>r.test(c));
 const READONLY = new Set(['read_file','list_directory','search_files','get_file_info','git_status','git_diff']);
 export class AgentController {
-  constructor(private provider:LMStudioProvider, private fm:FileManager, private tm:TerminalManager, private gm:GitManager, private cb:ContextBuilder, private opts:{maxIterations:number}){}
+  constructor(private provider:any, private fm:FileManager, private tm:TerminalManager, private gm:GitManager, private cb:ContextBuilder, private opts:{maxIterations:number}){}
+  setProvider(p:any){ this.provider=p; }
   async *run(o:{sessionId:string;model:string;userMessage:string;history:ChatMessage[];workspace:string;openFiles?:string[];currentFile?:string;approvalPolicy?:string;temperature?:number;maxTokens?:number;images?:string[]}): AsyncGenerator<any>{
     const t0=Date.now();
     let messages:ChatMessage[]=[{role:'system', content: this.cb.systemPrompt(o.workspace)+'\n\nContext:\n'+ await this.cb.build({workspace:o.workspace, openFiles:o.openFiles, currentFile:o.currentFile})}];
-    messages.push(...o.history.slice(-12));
+    messages.push(...o.history.slice(-6));
     if(o.images?.length){
       const content:any[]=[{type:'text', text:o.userMessage||'Describe this image'}];
       for(const img of o.images.slice(0,4)) content.push({type:'image_url', image_url:{url: img.startsWith('data:')?img:`data:image/jpeg;base64,${img}`}});
@@ -29,22 +30,22 @@ export class AgentController {
       const tokenQueue:string[]=[]; let streamDone=false; let streamErr:string|null=null;
       const streamPromise = this.provider.streamChat({
         model:o.model, messages, tools, temperature: o.temperature??0.15, max_tokens: o.maxTokens??2048,
-        onToken: t=>{ assistantText+=t; tokenQueue.push(t); },
-        onToolCall: tcs=> pending.push(...tcs),
+        onToken: (t:string)=>{ assistantText+=t; tokenQueue.push(t); },
+        onToolCall: (tcs:any)=> pending.push(...tcs),
         onDone: ()=>{ streamDone=true; },
-        onError: e=>{ streamErr=e; streamDone=true; }
+        onError: (e:string)=>{ streamErr=e; streamDone=true; }
       });
       while(!streamDone || tokenQueue.length){
         if(tokenQueue.length){
-          const batch=tokenQueue.splice(0,2).join('');
+          const batch=tokenQueue.splice(0,tokenQueue.length).join('');
           if(batch) yield {type:'token', content: batch};
         } else {
-          await new Promise(r=>setTimeout(r,10));
+          await new Promise(r=>setTimeout(r,5));
         }
         if(streamDone && !tokenQueue.length) break;
         if(streamDone) await streamPromise.catch(()=>{});
       }
-      await streamPromise.catch(e=>{ streamErr=e.message; });
+      await streamPromise.catch((e:any)=>{ streamErr=e.message; });
       if(streamErr) assistantText+=`\n[Error ${streamErr}]`;
       if(!pending.length){
         const fb=parseFallbackToolCalls(assistantText);
@@ -64,7 +65,7 @@ export class AgentController {
         if(canParallel){
           yield {type:'tool_start', name:'parallel', args:{count:pending.length}};
           const results=await Promise.all(pending.map(execOne));
-          for(const r of results){ yield {type:'tool_result', name:r.tc.function.name, result:r.result, id:r.tc.id}; messages.push({role:'tool', content: r.result.slice(0,6000), tool_call_id:r.tc.id} as any); }
+          for(const r of results){ yield {type:'tool_result', name:r.tc.function.name, result:r.result.slice(0,3000), id:r.tc.id}; messages.push({role:'tool', content: r.result.slice(0,3000), tool_call_id:r.tc.id} as any); }
         } else {
           for(const tc of pending){
             let args:any={}; try{ args=JSON.parse(tc.function.arguments||'{}'); }catch{}
@@ -72,12 +73,12 @@ export class AgentController {
             let result:string;
             if((tc.function.name==='execute_command'||tc.function.name==='run_tests') && isDangerous(args.command||'')){ yield {type:'approval_required', tool:tc.function.name, command:args.command, id:tc.id}; result='Blocked: dangerous'; }
             else { try{ result=await this.executeTool(tc.function.name, args);}catch(e:any){result=`Error: ${e.message}`;} }
-            const out=result.slice(0,6000);
+            const out=result.slice(0,3000);
             yield {type:'tool_result', name:tc.function.name, result:out, id:tc.id};
             messages.push({role:'tool', content:out, tool_call_id:tc.id} as any);
           }
         }
-        if(messages.length>24){ const sys=messages[0]; messages=[sys, ...messages.slice(-20)]; }
+        if(messages.length>16){ const sys=messages[0]; messages=[sys, ...messages.slice(-14)]; }
         continue;
       } else {
         if(assistantText.trim()) yield {type:'done_stream', latency: Date.now()-streamStart};
@@ -90,7 +91,7 @@ export class AgentController {
   }
   private async executeTool(name:string, args:any):Promise<string>{
     switch(name){
-      case 'read_file': return (await this.fm.readFile(args.path)).slice(0,8000);
+      case 'read_file': return (await this.fm.readFile(args.path)).slice(0,4000);
       case 'write_file': await this.fm.writeFile(args.path, args.content); return `Wrote ${args.path} (${args.content.length} chars)`;
       case 'edit_file': await this.fm.editFile(args.path, args.old_text, args.new_text); return `Edited ${args.path}`;
       case 'list_directory': return JSON.stringify(await this.fm.listDirectory(args.path||'.'),null,2).slice(0,5000);
