@@ -173,12 +173,12 @@ app.post('/api/chat', async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// --- Static frontend ---
+// --- Static frontend (HTML never cached so clients always get fresh asset URLs) ---
 const frontendPath = path.join(__dirname, '../../frontend');
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, { maxAge: '1h', etag: true, index: false }));
 app.get('*', (req, res) => {
   const index = path.join(frontendPath, 'index.html');
-  if (fs.existsSync(index)) res.sendFile(index);
+  if (fs.existsSync(index)) res.set('Cache-Control', 'no-cache').sendFile(index);
   else res.json({ message: 'Local Code Agent API running', frontend: 'not built yet' });
 });
 
@@ -197,7 +197,7 @@ function shutdown(signal: string) {
   wss.clients.forEach(ws => { try { ws.close(1001, 'Server shutting down'); } catch {} });
   wss.close();
   server.close(() => {
-    try { tm.killAll?.(); } catch {}
+    try { (tm as any).killAll?.(); } catch {}
     console.log('Server stopped.');
     process.exit(0);
   });
