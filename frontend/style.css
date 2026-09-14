@@ -232,9 +232,26 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 @keyframes emptyPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,140,255,0)}50%{box-shadow:0 0 0 12px rgba(124,140,255,.08)}}
 
 /* ─── IDE resize handle ─── */
-.ideDrawer{position:relative}
-.ideDrawer .resizeHandle{position:absolute;left:-3px;top:48px;bottom:0;width:6px;cursor:col-resize;z-index:10}
-.ideDrawer .resizeHandle:hover{background:rgba(124,140,255,.2)}
+.ideDrawer{position:relative;min-width:280px;max-width:70vw}
+.ideDrawer .resizeHandle{position:absolute;left:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:10;touch-action:none}
+.ideDrawer .resizeHandle:hover,.ideDrawer .resizeHandle.dragging{background:rgba(124,140,255,.35)}
+/* Sidebar resize */
+.app.chatgpt{position:relative}
+.sidebar{min-width:180px;max-width:420px}
+.resizeHandle.sidebarHandle{width:7px;cursor:col-resize;flex-shrink:0;margin-left:-3px;margin-right:-4px;z-index:15;touch-action:none;background:transparent}
+.resizeHandle.sidebarHandle:hover,.resizeHandle.sidebarHandle.dragging{background:rgba(124,140,255,.35)}
+/* Terminal resize */
+.terminalWrap{position:relative;min-height:100px;max-height:80%}
+.termHandle.resizeHandle{position:absolute;left:0;right:0;top:-3px;height:7px;width:auto;cursor:row-resize;z-index:10;touch-action:none}
+.termHandle.resizeHandle:hover,.termHandle.resizeHandle.dragging{background:rgba(124,140,255,.35)}
+.terminalWrap.collapsed .terminal,.terminalWrap.collapsed .gitPanel{display:none}
+.terminalWrap.collapsed{height:38px!important;min-height:38px}
+/* Chat column stays fluid while resizing */
+.main{min-width:200px}
+body.resizing{cursor:col-resize;user-select:none!important}
+body.resizing-row{cursor:row-resize;user-select:none!important}
+body.resizing *{user-select:none!important;pointer-events:none}
+body.resizing .resizeHandle{pointer-events:auto}
 
 /* ─── Improved modal ─── */
 .modalBox{animation:modalIn .2s ease}

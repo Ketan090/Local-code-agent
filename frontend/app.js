@@ -611,9 +611,90 @@ function execTerm() {
 
 function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
 
+// ─── Resizable panels (sidebar / IDE / terminal) ───
+function makeResizable(handle, onDrag, opts = {}) {
+  const el = typeof handle === 'string' ? $(handle) : handle;
+  if (!el) return;
+  el.addEventListener('mousedown', e => {
+    e.preventDefault();
+    el.classList.add('dragging');
+    document.body.classList.add(opts.row ? 'resizing-row' : 'resizing');
+    const startX = e.clientX, startY = e.clientY;
+    const move = ev => onDrag(ev, { dx: ev.clientX - startX, dy: ev.clientY - startY, startX, startY });
+    const up = () => {
+      el.classList.remove('dragging');
+      document.body.classList.remove('resizing', 'resizing-row');
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      if (editor) try { editor.layout(); } catch {}
+      if (opts.save) try { opts.save(); } catch {}
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  });
+  if (opts.dblReset) el.addEventListener('dblclick', opts.dblReset);
+}
+
+function initResizable() {
+  const sidebar = $('#sidebar'), ide = $('#ideDrawer'), term = $('#terminalWrap');
+  // Restore saved sizes
+  try {
+    const sw = parseInt(localStorage.getItem('ui_sidebarW'), 10);
+    if (sw >= 180 && sw <= 420 && sidebar) sidebar.style.width = sw + 'px';
+    const iw = parseInt(localStorage.getItem('ui_ideW'), 10);
+    if (iw >= 280 && iw <= window.innerWidth * 0.7 && ide) ide.style.width = iw + 'px';
+    const th = parseInt(localStorage.getItem('ui_termH'), 10);
+    if (th >= 100 && th <= window.innerHeight * 0.8 && term) term.style.height = th + 'px';
+  } catch {}
+
+  // Sidebar: drag right edge
+  if (sidebar) {
+    const startW = () => sidebar.getBoundingClientRect().width;
+    let s0 = 0;
+    const h = $('#sidebarHandle');
+    if (h) h.addEventListener('mousedown', e => { s0 = startW(); });
+    makeResizable('#sidebarHandle', (ev, { dx }) => {
+      sidebar.style.width = Math.min(420, Math.max(180, s0 + dx)) + 'px';
+    }, {
+      save: () => localStorage.setItem('ui_sidebarW', parseInt(sidebar.style.width, 10)),
+      dblReset: () => { sidebar.style.width = '260px'; localStorage.removeItem('ui_sidebarW'); }
+    });
+  }
+  // IDE drawer: drag left edge (inverse)
+  if (ide) {
+    let s0 = 0;
+    const h = $('#ideHandle');
+    if (h) h.addEventListener('mousedown', e => { s0 = ide.getBoundingClientRect().width; });
+    makeResizable('#ideHandle', (ev, { dx }) => {
+      ide.style.width = Math.min(window.innerWidth * 0.7, Math.max(280, s0 - dx)) + 'px';
+    }, {
+      save: () => localStorage.setItem('ui_ideW', parseInt(ide.style.width, 10)),
+      dblReset: () => { ide.style.width = '480px'; localStorage.removeItem('ui_ideW'); if (editor) try{editor.layout();}catch{} }
+    });
+  }
+  // Terminal: drag top edge (inverse Y)
+  if (term) {
+    let s0 = 0;
+    const h = $('#termHandle');
+    if (h) h.addEventListener('mousedown', e => { s0 = term.getBoundingClientRect().height; });
+    makeResizable('#termHandle', (ev, { dy }) => {
+      if (term.classList.contains('collapsed')) term.classList.remove('collapsed');
+      term.style.height = Math.min(window.innerHeight * 0.8, Math.max(100, s0 - dy)) + 'px';
+    }, {
+      row: true,
+      save: () => localStorage.setItem('ui_termH', parseInt(term.style.height, 10)),
+      dblReset: () => {
+        if (term.classList.contains('collapsed')) term.classList.remove('collapsed');
+        else { term.style.height = '210px'; localStorage.removeItem('ui_termH'); }
+      }
+    });
+  }
+  window.addEventListener('resize', () => { if (editor) try { editor.layout(); } catch {} });
+}
+
 // ─── Init ───
 document.addEventListener('DOMContentLoaded', () => {
-  loadConfig(); refreshModels(); setTimeout(refreshModels, 2000); loadWorkspace(); loadSessions(); initMonaco(); connectWS();
+  loadConfig(); refreshModels(); setTimeout(refreshModels, 2000); loadWorkspace(); loadSessions(); initMonaco(); connectWS(); initResizable();
 
   // Buttons
   $('#btnRefreshModels').onclick = () => { refreshModels(); toast('Refreshing models...'); };

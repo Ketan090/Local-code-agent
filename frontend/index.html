@@ -42,6 +42,7 @@
       <div class="sideFoot"><span id="projLabel">No project</span><span class="ver"> · local</span></div>
     </div>
   </aside>
+  <div class="resizeHandle sidebarHandle" id="sidebarHandle" title="Drag to resize sidebar"></div>
   <div class="main">
     <header class="chatHeader">
       <button id="btnToggleSidebar" class="iconBtn hideDesktop" title="Toggle sidebar">☰</button>
@@ -91,7 +92,7 @@
     </div>
   </div>
   <aside class="ideDrawer" id="ideDrawer">
-    <div class="resizeHandle"></div>
+    <div class="resizeHandle" id="ideHandle" title="Drag to resize IDE"></div>
     <div class="ideHead">
       <div class="ideTabs" id="tabs"></div>
       <div class="ideActions">
@@ -101,6 +102,7 @@
     </div>
     <div id="editor" class="editor"></div>
     <div class="terminalWrap" id="terminalWrap">
+      <div class="resizeHandle termHandle" id="termHandle" title="Drag to resize terminal"></div>
       <div class="termHead">
         <span>Terminal</span>
         <input id="termInput" placeholder="Run command… (Enter)" aria-label="Terminal command"/>
