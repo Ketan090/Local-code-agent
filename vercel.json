@@ -1,0 +1,1 @@
+{"buildCommand": "npm --prefix backend run build", "installCommand": "npm --prefix backend install", "framework": null}
