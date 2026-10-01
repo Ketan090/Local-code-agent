@@ -6,7 +6,7 @@
 <title>Local Code Agent</title>
 <meta name="description" content="Local AI coding agent — connect to LM Studio, read, edit, and run your workspace autonomously."/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%237C8CFF'><path d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z'/></svg>"/>
-<link rel="stylesheet" href="style.css?v=9"/>
+<link rel="stylesheet" href="style.css?v=10"/>
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 </head>
 <body>
@@ -77,12 +77,14 @@
         <div class="composerBar">
           <div class="composerLeft">
             <button id="btnPhoto" class="iconBtn" title="Attach photo (max 4MB)"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg></button>
-            <span class="hint"><kbd>@</kbd> Files <kbd>/</kbd> Commands</span>
+            <span class="barDivider"></span>
+            <span class="hint"><kbd>@</kbd><span>files</span><kbd>/</kbd><span>commands</span></span>
+            <span class="barDivider"></span>
             <div class="cmds">
-              <button data-cmd="/fix">/fix</button>
-              <button data-cmd="/explain">/explain</button>
-              <button data-cmd="/test">/test</button>
-              <button data-cmd="/review">/review</button>
+              <button data-cmd="/fix" title="Fix an issue">/fix</button>
+              <button data-cmd="/explain" title="Explain code">/explain</button>
+              <button data-cmd="/test" title="Run tests">/test</button>
+              <button data-cmd="/review" title="Review changes">/review</button>
             </div>
           </div>
           <button id="btnSend" class="sendBtn" aria-label="Send message (Ctrl+Enter)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg></button>
@@ -157,6 +159,6 @@
   </div>
 </div>
 
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

@@ -76,13 +76,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .composerPill:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,140,255,.12), 0 4px 20px rgba(0,0,0,.25)}
 .composerPill textarea{width:100%;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;line-height:1.5;resize:none;max-height:120px;min-height:24px;font-family:inherit}
 .composerPill textarea::placeholder{color:var(--muted2)}
-.composerBar{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
-.composerLeft{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.hint{font-size:11px;color:var(--muted2);display:flex;gap:6px;align-items:center}
-.hint kbd{background:var(--bg4);border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 5px;font-family:'JetBrains Mono',monospace;font-size:10px}
-.cmds{display:flex;gap:6px}
-.cmds button{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:4px 9px;font-size:11px;cursor:pointer}
-.cmds button:hover{color:var(--text);background:var(--bg4)}
+.composerBar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.composerLeft{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.barDivider{width:1px;height:15px;background:var(--border);flex-shrink:0}
+.hint{font-size:11px;color:var(--muted2);display:flex;gap:5px;align-items:center;white-space:nowrap}
+.hint kbd{background:var(--bg4);border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);line-height:1.4}
+.hint span{color:var(--muted2)}
+.cmds{display:flex;gap:6px;flex-wrap:wrap}
+.cmds button{background:var(--bg4);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:4px 10px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:.12s}
+.cmds button:hover{color:var(--text);border-color:var(--accent);background:rgba(124,140,255,.08)}
+.composerBar .iconBtn{padding:5px 7px}
 .sendBtn{width:36px;height:36px;border-radius:50%;background:var(--text);color:var(--bg);border:none;cursor:pointer;display:grid;place-items:center;font-size:16px;transition:.15s;flex-shrink:0}
 .sendBtn:hover{transform:scale(1.05)}
 .sendBtn:disabled{opacity:.4;cursor:not-allowed}
