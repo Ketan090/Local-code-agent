@@ -156,6 +156,15 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .agentLiveBar.idle{opacity:.75}
 #agentLiveMeta{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2)}
 
+/* ─── Message actions (copy) ─── */
+.msgActions{display:flex;gap:6px;margin-top:6px;opacity:0;transition:opacity .15s;pointer-events:none}
+.msgRow:hover .msgActions,.msgActions:focus-within{opacity:1;pointer-events:auto}
+.msgRow.user .msgActions{justify-content:flex-end}
+.msgActionBtn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit;transition:.12s}
+.msgActionBtn:hover{color:var(--text);background:var(--bg3);border-color:var(--border2)}
+.msgActionBtn.ok{color:var(--green);border-color:rgba(63,185,80,.4)}
+@media(hover:none){.msgActions{opacity:1;pointer-events:auto}}
+
 /* ─── Message animations ─── */
 .msgRow{animation:msgFadeIn .25s ease}
 @keyframes msgFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -233,17 +242,22 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 
 /* ─── IDE resize handle ─── */
 .ideDrawer{position:relative;min-width:280px;max-width:70vw}
-.ideDrawer .resizeHandle{position:absolute;left:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:10;touch-action:none}
+.ideDrawer .resizeHandle{position:absolute;left:-5px;top:0;bottom:0;width:11px;cursor:col-resize;z-index:12;touch-action:none;background:transparent}
 .ideDrawer .resizeHandle:hover,.ideDrawer .resizeHandle.dragging{background:rgba(124,140,255,.35)}
-/* Sidebar resize */
+/* Sidebar resize — positioned + z-index so .main can't paint over the grip */
 .app.chatgpt{position:relative}
 .sidebar{min-width:180px;max-width:420px}
-.resizeHandle.sidebarHandle{width:7px;cursor:col-resize;flex-shrink:0;margin-left:-3px;margin-right:-4px;z-index:15;touch-action:none;background:transparent}
+.resizeHandle.sidebarHandle{position:relative;width:11px;cursor:col-resize;flex-shrink:0;margin-left:-5px;margin-right:-5px;z-index:15;touch-action:none;background:transparent}
 .resizeHandle.sidebarHandle:hover,.resizeHandle.sidebarHandle.dragging{background:rgba(124,140,255,.35)}
 /* Terminal resize */
 .terminalWrap{position:relative;min-height:100px;max-height:80%}
-.termHandle.resizeHandle{position:absolute;left:0;right:0;top:-3px;height:7px;width:auto;cursor:row-resize;z-index:10;touch-action:none}
+.termHandle.resizeHandle{position:absolute;left:0;right:0;top:-5px;height:11px;width:auto;cursor:row-resize;z-index:10;touch-action:none;background:transparent}
 .termHandle.resizeHandle:hover,.termHandle.resizeHandle.dragging{background:rgba(124,140,255,.35)}
+/* Grip line hint so handles are discoverable */
+.resizeHandle::before{content:'';position:absolute;border-radius:2px;background:var(--border2);opacity:.7;transition:.15s;pointer-events:none}
+.resizeHandle:hover::before,.resizeHandle.dragging::before{opacity:1;background:var(--accent)}
+.resizeHandle.sidebarHandle::before,.ideDrawer .resizeHandle:not(.termHandle)::before{left:50%;top:30%;bottom:30%;width:2px;transform:translateX(-50%)}
+.termHandle.resizeHandle::before{top:50%;left:30%;right:30%;height:2px;width:auto;transform:translateY(-50%)}
 .terminalWrap.collapsed .terminal,.terminalWrap.collapsed .gitPanel{display:none}
 .terminalWrap.collapsed{height:38px!important;min-height:38px}
 /* Chat column stays fluid while resizing */
@@ -252,6 +266,7 @@ body.resizing{cursor:col-resize;user-select:none!important}
 body.resizing-row{cursor:row-resize;user-select:none!important}
 body.resizing *{user-select:none!important;pointer-events:none}
 body.resizing .resizeHandle{pointer-events:auto}
+body.resizing-row *{user-select:none!important}
 
 /* ─── Improved modal ─── */
 .modalBox{animation:modalIn .2s ease}

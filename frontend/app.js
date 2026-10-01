@@ -327,11 +327,48 @@ function addChat(role, content, images) {
   bub.className = 'msgBubble';
   if (role === 'assistant') bub.innerHTML = renderMarkdown(content);
   else { bub.textContent = content; if (images?.length) images.forEach(src => { const im = document.createElement('img'); im.src = src; bub.appendChild(im); }); }
+  bub.appendChild(buildMsgActions(bub, content));
   if (role !== 'user') { row.appendChild(ava); row.appendChild(bub); }
   else { row.appendChild(bub); row.appendChild(ava); }
   chat.appendChild(row);
   $('#emptyState').style.display = 'none';
   chatWrapScroll();
+}
+
+function buildMsgActions(bub, textContent) {
+  const actions = document.createElement('div');
+  actions.className = 'msgActions';
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'msgActionBtn';
+  copyBtn.type = 'button';
+  copyBtn.title = 'Copy message';
+  copyBtn.textContent = '⧉ Copy';
+  copyBtn.onclick = () => {
+    const text = typeof textContent === 'string' ? textContent : (bub.innerText || '');
+    const done = () => {
+      copyBtn.textContent = '✓ Copied';
+      copyBtn.classList.add('ok');
+      setTimeout(() => { copyBtn.textContent = '⧉ Copy'; copyBtn.classList.remove('ok'); }, 1400);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else fallbackCopy(text, done);
+  };
+  actions.appendChild(copyBtn);
+  return actions;
+}
+
+function fallbackCopy(text, done) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    done();
+  } catch {}
 }
 
 // ─── Tool Cards ───
@@ -418,7 +455,10 @@ function finalizeStreaming() {
   if (!streamingRow) return;
   try {
     const bub = streamingRow.querySelector('.msgBubble');
-    if (bub && streamingText) bub.innerHTML = renderMarkdown(streamingText);
+    if (bub && streamingText) {
+      bub.innerHTML = renderMarkdown(streamingText);
+      bub.appendChild(buildMsgActions(bub, streamingText));
+    }
   } catch {}
   streamingRow.dataset.done = 'true';
   streamingRow = null;
@@ -694,7 +734,9 @@ function initResizable() {
 
 // ─── Init ───
 document.addEventListener('DOMContentLoaded', () => {
-  loadConfig(); refreshModels(); setTimeout(refreshModels, 2000); loadWorkspace(); loadSessions(); initMonaco(); connectWS(); initResizable();
+  // Resizers init FIRST — a failure in any later init must never kill them
+  try { initResizable(); } catch (e) { console.error('initResizable failed', e); }
+  loadConfig(); refreshModels(); setTimeout(refreshModels, 2000); loadWorkspace(); loadSessions(); initMonaco(); connectWS();
 
   // Buttons
   $('#btnRefreshModels').onclick = () => { refreshModels(); toast('Refreshing models...'); };
