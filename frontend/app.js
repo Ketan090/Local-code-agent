@@ -323,13 +323,16 @@ function addChat(role, content, images) {
   row.className = `msgRow ${role}`;
   const ava = document.createElement('div');
   ava.className = 'avatar'; ava.textContent = role === 'user' ? 'U' : role === 'tool' ? '⚙' : '✦';
+  const col = document.createElement('div');
+  col.className = 'msgCol';
   const bub = document.createElement('div');
   bub.className = 'msgBubble';
   if (role === 'assistant') bub.innerHTML = renderMarkdown(content);
   else { bub.textContent = content; if (images?.length) images.forEach(src => { const im = document.createElement('img'); im.src = src; bub.appendChild(im); }); }
-  bub.appendChild(buildMsgActions(bub, content));
-  if (role !== 'user') { row.appendChild(ava); row.appendChild(bub); }
-  else { row.appendChild(bub); row.appendChild(ava); }
+  col.appendChild(bub);
+  col.appendChild(buildMsgActions(bub, content));
+  if (role !== 'user') { row.appendChild(ava); row.appendChild(col); }
+  else { row.appendChild(col); row.appendChild(ava); }
   chat.appendChild(row);
   $('#emptyState').style.display = 'none';
   chatWrapScroll();
@@ -457,7 +460,14 @@ function finalizeStreaming() {
     const bub = streamingRow.querySelector('.msgBubble');
     if (bub && streamingText) {
       bub.innerHTML = renderMarkdown(streamingText);
-      bub.appendChild(buildMsgActions(bub, streamingText));
+      let col = streamingRow.querySelector('.msgCol');
+      if (!col) {
+        col = document.createElement('div');
+        col.className = 'msgCol';
+        bub.parentNode.insertBefore(col, bub);
+        col.appendChild(bub);
+      }
+      col.appendChild(buildMsgActions(bub, streamingText));
     }
   } catch {}
   streamingRow.dataset.done = 'true';

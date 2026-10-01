@@ -46,7 +46,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .chat.chatGPT{padding:24px 0;display:flex;flex-direction:column;gap:0;max-width:760px;width:100%;margin:0 auto}
 .msgRow{display:flex;gap:12px;padding:18px 20px;max-width:100%}
 .msgRow.user{justify-content:flex-end}
-.msgRow.user .msgBubble{background:var(--bubbleUser);color:var(--text);border-radius:18px;border-bottom-right-radius:6px;max-width:78%}
+.msgCol{display:flex;flex-direction:column;min-width:0;max-width:100%}
+.msgRow.user .msgCol{align-items:flex-end;max-width:78%}
+.msgRow.user .msgBubble{background:var(--bubbleUser);color:var(--text);border-radius:18px;border-bottom-right-radius:6px;max-width:100%}
 .msgRow.assistant .msgBubble{background:transparent;color:var(--text);max-width:100%}
 .msgRow .avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px}
 .msgRow.user .avatar{background:var(--accent);color:#fff}
@@ -156,10 +158,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .agentLiveBar.idle{opacity:.75}
 #agentLiveMeta{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2)}
 
-/* ─── Message actions (copy) ─── */
-.msgActions{display:flex;gap:6px;margin-top:6px;opacity:0;transition:opacity .15s;pointer-events:none}
+/* ─── Message actions (copy) — sits below the bubble ─── */
+.msgActions{display:flex;gap:6px;margin-top:5px;opacity:0;transition:opacity .15s;pointer-events:none}
 .msgRow:hover .msgActions,.msgActions:focus-within{opacity:1;pointer-events:auto}
-.msgRow.user .msgActions{justify-content:flex-end}
 .msgActionBtn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit;transition:.12s}
 .msgActionBtn:hover{color:var(--text);background:var(--bg3);border-color:var(--border2)}
 .msgActionBtn.ok{color:var(--green);border-color:rgba(63,185,80,.4)}
