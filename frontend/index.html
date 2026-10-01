@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Local Code Agent</title>
 <meta name="description" content="Local AI coding agent — connect to LM Studio, read, edit, and run your workspace autonomously."/>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>"/>
-<link rel="stylesheet" href="style.css?v=8"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%237C8CFF'><path d='M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z'/></svg>"/>
+<link rel="stylesheet" href="style.css?v=9"/>
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
 </head>
 <body>
@@ -19,7 +19,7 @@
         <div class="sideLabel" onclick="document.getElementById('wsSection').classList.toggle('collapsed')">Workspace</div>
         <div class="wsRow">
           <input id="workspaceInput" placeholder="Paste workspace path..." aria-label="Workspace path"/>
-          <button id="btnSetWorkspace" class="iconBtn" title="Open workspace">↗</button>
+          <button id="btnSetWorkspace" class="iconBtn" title="Open workspace"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></button>
         </div>
         <div id="fileTree" class="fileMini"></div>
       </div>
@@ -36,8 +36,8 @@
         <span id="lmStatus" class="dotStatus off" title="Connection status"></span>
       </div>
       <div class="sideActions">
-        <button id="btnGit" class="sideBtn" title="Toggle git status">Git</button>
-        <button id="btnSettings" class="sideBtn" title="Settings (Ctrl+,)">Settings</button>
+        <button id="btnGit" class="sideBtn" title="Toggle git status"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> Git</button>
+        <button id="btnSettings" class="sideBtn" title="Settings (Ctrl+,)"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> Settings</button>
       </div>
       <div class="sideFoot"><span id="projLabel">No project</span><span class="ver"> · local</span></div>
     </div>
@@ -45,11 +45,11 @@
   <div class="resizeHandle sidebarHandle" id="sidebarHandle" title="Drag to resize sidebar"></div>
   <div class="main">
     <header class="chatHeader">
-      <button id="btnToggleSidebar" class="iconBtn hideDesktop" title="Toggle sidebar">☰</button>
+      <button id="btnToggleSidebar" class="iconBtn hideDesktop" title="Toggle sidebar"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg></button>
       <div class="headerModel">Local Code Agent <span class="headerSub" id="headerModelName">— Select model</span></div>
       <div class="headerActions">
-        <button id="btnRefreshModels" class="iconBtn" title="Refresh models">↻</button>
-        <button id="btnConnect" class="iconBtn" title="Test connection">●</button>
+        <button id="btnRefreshModels" class="iconBtn" title="Refresh models"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <button id="btnConnect" class="iconBtn" title="Test connection"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></button>
         <button id="btnToggleIDE" class="pillBtn" title="Toggle IDE (Ctrl+I)">IDE</button>
       </div>
     </header>
@@ -57,7 +57,7 @@
       <div id="chat" class="chat chatGPT"></div>
       <div id="activity" class="activityMini"></div>
       <div id="emptyState" class="emptyState">
-        <div class="emptyIcon">✦</div>
+        <div class="emptyIcon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></div>
         <h2>What will you build?</h2>
         <p>Agent reads, edits, runs and fixes your workspace via LM Studio.</p>
         <div class="suggestions">
@@ -73,10 +73,10 @@
       <div class="composer composerPill" id="composer">
         <input type="file" id="photoInput" accept="image/*" multiple hidden/>
         <div id="photoPreview" class="photoPreview"></div>
-        <textarea id="prompt" rows="1" placeholder="Ask anything — @file  /fix  /explain  📷" aria-label="Message"></textarea>
+        <textarea id="prompt" rows="1" placeholder="Ask anything — @file  /fix  /explain" aria-label="Message"></textarea>
         <div class="composerBar">
           <div class="composerLeft">
-            <button id="btnPhoto" class="iconBtn" title="Attach photo (max 4MB)">📷</button>
+            <button id="btnPhoto" class="iconBtn" title="Attach photo (max 4MB)"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/></svg></button>
             <span class="hint"><kbd>@</kbd> Files <kbd>/</kbd> Commands</span>
             <div class="cmds">
               <button data-cmd="/fix">/fix</button>
@@ -85,7 +85,7 @@
               <button data-cmd="/review">/review</button>
             </div>
           </div>
-          <button id="btnSend" class="sendBtn" aria-label="Send message (Ctrl+Enter)"><span>↑</span></button>
+          <button id="btnSend" class="sendBtn" aria-label="Send message (Ctrl+Enter)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg></button>
         </div>
       </div>
       <div class="composerFoot">Agent can make mistakes — verify with terminal & diff. <span id="agentStatus" style="margin-left:8px"></span></div>
@@ -97,7 +97,7 @@
       <div class="ideTabs" id="tabs"></div>
       <div class="ideActions">
         <button id="btnOpenFolder" class="iconBtn" title="Open file">Open</button>
-        <button id="btnCloseIDE" class="iconBtn" title="Close IDE">✕</button>
+        <button id="btnCloseIDE" class="iconBtn" title="Close IDE"><svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
     </div>
     <div id="editor" class="editor"></div>
@@ -107,7 +107,7 @@
         <span>Terminal</span>
         <input id="termInput" placeholder="Run command… (Enter)" aria-label="Terminal command"/>
         <button id="btnClearTerm" class="iconBtn" title="Clear terminal">Clear</button>
-        <button id="btnTermToggle" class="iconBtn" title="Toggle terminal">—</button>
+        <button id="btnTermToggle" class="iconBtn" title="Toggle terminal"><svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg></button>
       </div>
       <div id="terminal" class="terminal"></div>
       <div id="gitPanel" class="gitPanel" style="display:none"></div>
@@ -118,7 +118,7 @@
 <!-- Settings Modal -->
 <div id="settingsModal" class="modal hidden">
   <div class="modalBox">
-    <h3>⚙️ Settings</h3>
+    <h3><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> Settings</h3>
     <label>LM Studio URL
       <input id="sBaseUrl" placeholder="http://localhost:1234/v1"/>
     </label>
@@ -146,7 +146,7 @@
 <!-- First Run Modal -->
 <div id="firstRun" class="modal hidden">
   <div class="modalBox">
-    <h2>✦ Welcome</h2>
+    <h2><svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg> Welcome</h2>
     <p style="color:var(--muted);font-size:13px">Connect to your local LM Studio instance to get started.</p>
     <label>LM Studio Endpoint
       <input id="frUrl" placeholder="http://localhost:1234/v1"/>
@@ -157,6 +157,6 @@
   </div>
 </div>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

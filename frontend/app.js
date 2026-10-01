@@ -3,6 +3,32 @@ let ws = null, editor = null, monacoLoaded = false, currentFile = null, openTabs
 const $ = s => document.querySelector(s);
 const logTerminal = t => { const e = $('#terminal'); e.textContent += t + '\n'; e.scrollTop = e.scrollHeight; };
 
+// ─── SVG icon system (Lucide-style strokes) ───
+const ICONS = {
+  sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3"/>',
+  arrowUp: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  arrowUpRight: '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+  menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  minus: '<path d="M5 12h14"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  gitBranch: '<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  circleX: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  circleCheck: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  chevronLeft: '<path d="m15 18-6-6 6-6"/>'
+};
+function ic(name, size = 16) {
+  return `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
+
 async function api(p, o = {}) {
   const r = await fetch(API + p, { headers: { 'Content-Type': 'application/json' }, ...o });
   const j = await r.json().catch(() => ({}));
@@ -191,10 +217,9 @@ async function setWorkspace() {
 
 // ─── File Tree ───
 function fileIcon(name, isDir) {
-  if (isDir) return '<span class="fileIcon dir">📁</span>';
-  const ext = name.split('.').pop().toLowerCase();
-  const icons = { ts: '📜', tsx: '⚛', js: '📜', jsx: '⚛', py: '🐍', json: '📋', md: '📝', css: '🎨', html: '🌐', go: '🔵', rs: '🦀', java: '☕', rb: '💎', sh: '⚙', yml: '⚙', yaml: '⚙', toml: '⚙', txt: '📄', sql: '🗄', svg: '🖼', png: '🖼', jpg: '🖼', jpeg: '🖼', gif: '🖼', lock: '🔒' };
-  return `<span class="fileIcon ${ext}">${icons[ext] || '📄'}</span>`;
+  if (isDir) return `<span class="fileIcon dir">${ic('folder', 13)}</span>`;
+  const ext = (name.includes('.') ? name.split('.').pop() : '').toLowerCase();
+  return `<span class="fileIcon ${ext}">${ic('file', 13)}</span>`;
 }
 
 let currentTreePath = '.';
@@ -208,7 +233,7 @@ async function renderTree(treePath) {
     if (currentTreePath !== '.') {
       const back = document.createElement('div');
       back.className = 'item back';
-      back.innerHTML = '← Back';
+      back.innerHTML = ic('chevronLeft', 12) + '<span>Back</span>';
       const parent = currentTreePath.split('/').slice(0, -1).join('/') || '.';
       back.onclick = () => renderTree(parent);
       el.appendChild(back);
@@ -257,9 +282,9 @@ function addTab(p) {
   const t = $('#tabs');
   const d = document.createElement('div');
   d.className = 'tab'; d.dataset.path = p;
-  d.innerHTML = `<span>${p.split('/').pop()}</span><span class="close">×</span>`;
+  d.innerHTML = `<span>${p.split('/').pop()}</span><span class="close" title="Close">${ic('x', 11)}</span>`;
   d.onclick = e => {
-    if (e.target.classList.contains('close')) {
+    if (e.target.closest('.close')) {
       openTabs.delete(p); d.remove();
       if (currentFile === p) { currentFile = null; if (editor) editor.setValue(''); }
     } else openFile(p);
@@ -306,10 +331,10 @@ function connectWS() {
       else if (m.type === 'tool_result') { finalizeStreaming(); updateToolCard(m.name, m.result, m.id); logActivity('✓ ' + m.name); setAgentStatus('Thinking…', true); if (m.name?.includes('write') || m.name?.includes('edit')) setTimeout(() => { renderTree(); if (currentFile) openFile(currentFile); loadGit(); }, 300); }
       else if (m.type === 'status') { $('#agentStatus').innerHTML = `<span class="spinner"></span> ${m.iteration}/${m.max} iterations`; setAgentStatus(`Thinking… step ${m.iteration}/${m.max}`, true, m); }
       else if (m.type === 'done') { removeStreamingIndicator(); $('#agentStatus').innerHTML = '<span class="agentDone">✓ Done</span>'; setAgentStatus('Done ✓', false, null, 'done'); logActivity('Done'); }
-      else if (m.type === 'error') { removeStreamingIndicator(); addChat('assistant', '⚠️ Error: ' + m.message); setAgentStatus('Error: ' + m.message, false, null, 'error'); }
+      else if (m.type === 'error') { removeStreamingIndicator(); addChat('assistant', 'Error: ' + m.message); setAgentStatus('Error: ' + m.message, false, null, 'error'); }
       else if (m.type === 'file_changed') { /* handled by tool_result */ }
       else if (m.type === 'approval_required') {
-        if (confirm(`⚠️ Allow this command?\n\n${m.command}`)) { ws.send(JSON.stringify({ type: 'approve', id: m.id })); }
+        if (confirm(`Allow this command?\n\n${m.command}`)) { ws.send(JSON.stringify({ type: 'approve', id: m.id })); }
       }
     } catch {}
   };
@@ -322,7 +347,8 @@ function addChat(role, content, images) {
   const row = document.createElement('div');
   row.className = `msgRow ${role}`;
   const ava = document.createElement('div');
-  ava.className = 'avatar'; ava.textContent = role === 'user' ? 'U' : role === 'tool' ? '⚙' : '✦';
+  ava.className = 'avatar';
+  ava.innerHTML = role === 'user' ? 'U' : role === 'tool' ? ic('wrench', 14) : ic('sparkles', 14);
   const col = document.createElement('div');
   col.className = 'msgCol';
   const bub = document.createElement('div');
@@ -345,13 +371,13 @@ function buildMsgActions(bub, textContent) {
   copyBtn.className = 'msgActionBtn';
   copyBtn.type = 'button';
   copyBtn.title = 'Copy message';
-  copyBtn.textContent = '⧉ Copy';
+  copyBtn.innerHTML = ic('copy', 13) + '<span>Copy</span>';
   copyBtn.onclick = () => {
     const text = typeof textContent === 'string' ? textContent : (bub.innerText || '');
     const done = () => {
-      copyBtn.textContent = '✓ Copied';
+      copyBtn.innerHTML = ic('check', 13) + '<span>Copied</span>';
       copyBtn.classList.add('ok');
-      setTimeout(() => { copyBtn.textContent = '⧉ Copy'; copyBtn.classList.remove('ok'); }, 1400);
+      setTimeout(() => { copyBtn.innerHTML = ic('copy', 13) + '<span>Copy</span>'; copyBtn.classList.remove('ok'); }, 1400);
     };
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
@@ -383,7 +409,7 @@ function addToolCard(name, args, status) {
   card.dataset.toolName = name;
   const argsStr = JSON.stringify(args || {}, null, 0);
   card.innerHTML = `
-    <div class="toolName"><span class="toolIcon">${status === 'error' ? '❌' : '⚙️'}</span> ${name} ${status === 'running' ? '<span class="spinner" style="width:12px;height:12px;border-width:1.5px"></span>' : ''}</div>
+    <div class="toolName"><span class="toolIcon">${status === 'error' ? ic('circleX', 13) : ic('wrench', 13)}</span> ${name} ${status === 'running' ? '<span class="spinner" style="width:12px;height:12px;border-width:1.5px"></span>' : ''}</div>
     ${argsStr.length > 10 ? `<div class="toolArgs">${escapeHtml(argsStr.slice(0, 300))}${argsStr.length > 300 ? '...' : ''}</div>` : ''}
     <div class="toolOutput" style="display:none"></div>
   `;
@@ -406,7 +432,7 @@ function updateToolCard(name, result, id) {
   const spinner = card.querySelector('.spinner');
   if (spinner) spinner.remove();
   const icon = card.querySelector('.toolIcon');
-  if (icon) icon.textContent = '✅';
+  if (icon) icon.innerHTML = ic('circleCheck', 13);
   const truncated = (result || '').slice(0, 800);
   if (truncated) {
     output.style.display = 'block';
@@ -438,7 +464,8 @@ function appendAssistant(chunk, streaming) {
     streamingRow.className = 'msgRow assistant';
     streamingRow.dataset.done = 'false';
     const ava = document.createElement('div');
-    ava.className = 'avatar'; ava.textContent = '✦';
+    ava.className = 'avatar';
+    ava.innerHTML = ic('sparkles', 14);
     const bub = document.createElement('div');
     bub.className = 'msgBubble'; bub.textContent = '';
     streamingRow.appendChild(ava);
@@ -550,7 +577,7 @@ function renderPreview() {
   const c = $('#photoPreview'); c.innerHTML = '';
   pendingImages.forEach((src, i) => {
     const d = document.createElement('div'); d.className = 'thumb';
-    d.innerHTML = `<img src="${src}"/><button class="rm">✕</button>`;
+    d.innerHTML = `<img src="${src}"/><button class="rm" title="Remove">${ic('x', 10)}</button>`;
     d.querySelector('.rm').onclick = () => { pendingImages.splice(i, 1); renderPreview(); };
     c.appendChild(d);
   });
@@ -598,7 +625,7 @@ async function sendPrompt() {
       setAgentStatus('Done ✓', false, null, 'done');
     } catch (e) {
       removeStreamingIndicator();
-      addChat('assistant', '⚠️ Error: ' + e.message);
+      addChat('assistant', 'Error: ' + e.message);
       setAgentStatus('Error', false, null, 'error');
     }
   }

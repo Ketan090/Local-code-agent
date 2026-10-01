@@ -30,7 +30,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .dotStatus.on{background:var(--green);box-shadow:0 0 0 4px rgba(63,185,80,.15)}
 .dotStatus.off{background:var(--muted2)}
 .sideActions{display:flex;gap:6px}
-.sideBtn{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer}
+.sideBtn{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:.12s}
 .sideBtn:hover{color:var(--text);background:var(--bg4)}
 .sideFoot{font-size:11px;color:var(--muted2);text-align:center}
 .main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--chatBg);position:relative}
@@ -38,7 +38,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .headerModel{font-weight:600;font-size:13.5px;flex:1;text-align:center}
 .headerSub{color:var(--muted);font-weight:400;margin-left:6px;font-size:12.5px}
 .headerActions{display:flex;gap:6px}
-.iconBtn{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px}
+.iconBtn{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;transition:.12s}
 .iconBtn:hover{background:var(--bg3);color:var(--text);border-color:var(--border)}
 .pillBtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
 .pillBtn:hover{background:var(--bg4)}
@@ -93,6 +93,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .ideTabs{flex:1;display:flex;gap:1px;overflow:auto}
 .ideTabs .tab{padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;display:flex;gap:6px;align-items:center;white-space:nowrap;color:var(--muted)}
 .ideTabs .tab.active{background:var(--bg);color:var(--text);border-bottom-color:var(--accent)}
+.ideTabs .tab .close{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;color:var(--muted2);transition:.12s;flex-shrink:0}
+.ideTabs .tab .close:hover{background:var(--bg4);color:var(--text)}
 .ideActions{display:flex;gap:4px}
 .editor{flex:1;min-height:260px}
 .terminalWrap{height:210px;border-top:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2)}
@@ -106,7 +108,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal.hidden{display:none}
 .modalBox{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;min-width:420px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:14px}
-.modalBox h3{font-size:15px;font-weight:600}
+.modalBox h3{font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px}
 .modalBox label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 .modalBox input{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 11px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -181,7 +183,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .fileMini .item .fileIcon.md{color:var(--muted)}
 .fileMini .item .fileIcon.css{color:#264DE4}
 .fileMini .item .fileIcon.html{color:#E34F26}
-.fileMini .item .back{color:var(--muted2);font-style:italic}
+.fileMini .item .back{color:var(--muted2);display:flex;align-items:center;gap:3px}
 
 /* ─── Collapsible sections ─── */
 .sideSection{overflow:hidden}
@@ -274,3 +276,17 @@ body.resizing-row *{user-select:none!important}
 @keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 .modalBox label input{transition:border-color .15s}
 .modalBox label input:focus{border-color:var(--accent);outline:none}
+
+/* ─── SVG icon system ─── */
+.ico{display:inline-block;flex-shrink:0;vertical-align:-0.15em}
+.modalBox h2{display:flex;align-items:center;gap:10px}
+.modalBox h2 .ico{color:var(--accent)}
+.emptyIcon .ico,.emptyIcon svg{color:var(--accent)}
+.fileMini .item .fileIcon{display:inline-flex;align-items:center;vertical-align:-2px;color:var(--muted2)}
+.fileMini .item .fileIcon.dir{color:var(--accent)}
+.toolCard .toolName .toolIcon{display:inline-flex;align-items:center}
+.msgActionBtn{display:inline-flex;align-items:center;gap:5px}
+.msgRow .avatar{display:grid;place-items:center}
+.msgRow .avatar .ico{margin:0}
+.pillBtn{display:inline-flex;align-items:center;justify-content:center}
+.sendBtn svg{display:block}
